@@ -1,0 +1,147 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="OpenHyperX.App.MainWindow"
+        Title="OpenHyperX"
+        Width="1040"
+        Height="680"
+        MinWidth="860"
+        MinHeight="560"
+        Classes.dark="{Binding IsDarkMode}">
+  <Grid RowDefinitions="Auto,*">
+    <Border Grid.Row="0" Classes="topbar">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+        <StackPanel Spacing="2">
+          <TextBlock Text="OpenHyperX" Classes="app-title" />
+          <TextBlock Text="{Binding ActiveDeviceText}" Classes="muted" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <ToggleSwitch IsChecked="{Binding IsDarkMode}"
+                        OnContent="Dark"
+                        OffContent="Light"
+                        VerticalAlignment="Center" />
+          <Border Classes="badge">
+            <TextBlock Text="{Binding ConnectionText}" />
+          </Border>
+          <Button Content="Refresh" Command="{Binding RefreshDevicesCommand}" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="1"
+          Margin="24"
+          RowDefinitions="Auto,*"
+          ColumnDefinitions="320,*"
+          ColumnSpacing="20"
+          RowSpacing="20">
+      <Border Grid.ColumnSpan="2" Classes="panel">
+        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+          <ComboBox ItemsSource="{Binding Devices}"
+                    SelectedItem="{Binding SelectedDevice}"
+                    MinHeight="38"
+                    HorizontalAlignment="Stretch"
+                    PlaceholderText="Cloud Alpha Wireless">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Spacing="2">
+                  <TextBlock Text="{Binding DisplayName}" />
+                  <TextBlock Text="{Binding DetailText}" Classes="muted-small" />
+                </StackPanel>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+
+          <Button Grid.Column="1"
+                  Classes="primary"
+                  Content="Connect"
+                  Command="{Binding ConnectCommand}" />
+          <Button Grid.Column="2"
+                  Content="Read Status"
+                  Command="{Binding RefreshStatusCommand}" />
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="1" Grid.Column="0" Classes="panel">
+        <StackPanel Spacing="18">
+          <StackPanel Spacing="3">
+            <TextBlock Text="Device" Classes="section-title" />
+            <TextBlock Text="{Binding StatusMessage}" Classes="muted" TextWrapping="Wrap" />
+          </StackPanel>
+
+          <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="12">
+            <TextBlock Text="Battery" Classes="label" />
+            <TextBlock Grid.Column="1" Text="{Binding BatteryText}" Classes="metric" />
+
+            <TextBlock Grid.Row="1" Text="Charging" Classes="label" />
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ChargingText}" Classes="metric" />
+
+            <TextBlock Grid.Row="2" Text="Pair ID" Classes="label" />
+            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding PairIdText}" Classes="metric" />
+
+            <TextBlock Grid.Row="3" Text="Auto shutdown" Classes="label" />
+            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding AutoShutdownText}" Classes="metric" />
+          </Grid>
+
+          <ProgressBar IsIndeterminate="True"
+                       IsVisible="{Binding IsBusy}"
+                       Height="4" />
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="1" Grid.Column="1" Classes="panel">
+        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="22">
+          <TextBlock Text="Cloud Alpha Wireless" Classes="section-title" />
+
+          <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="18">
+            <StackPanel Classes="setting" Spacing="8">
+              <TextBlock Text="Microphone" Classes="label" />
+              <ToggleSwitch IsChecked="{Binding MicMuted}"
+                            IsEnabled="{Binding IsConnected}"
+                            OnContent="Muted"
+                            OffContent="Live" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Classes="setting" Spacing="8">
+              <TextBlock Text="Sidetone" Classes="label" />
+              <ToggleSwitch IsChecked="{Binding SidetoneEnabled}"
+                            IsEnabled="{Binding IsConnected}"
+                            OnContent="On"
+                            OffContent="Off" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Classes="setting" Spacing="8">
+              <TextBlock Text="Voice prompts" Classes="label" />
+              <ToggleSwitch IsChecked="{Binding VoicePromptEnabled}"
+                            IsEnabled="{Binding IsConnected}"
+                            OnContent="On"
+                            OffContent="Off" />
+            </StackPanel>
+          </Grid>
+
+          <Grid Grid.Row="2" ColumnDefinitions="260,*" ColumnSpacing="18">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Auto shutdown" Classes="label" />
+              <ComboBox ItemsSource="{Binding AutoShutdownOptions}"
+                        SelectedItem="{Binding SelectedAutoShutdownOption}"
+                        IsEnabled="{Binding IsConnected}"
+                        MinHeight="38">
+                <ComboBox.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding Label}" />
+                  </DataTemplate>
+                </ComboBox.ItemTemplate>
+              </ComboBox>
+            </StackPanel>
+
+            <Border Grid.Column="1" Classes="protocol-box">
+              <StackPanel Spacing="8">
+                <TextBlock Text="Protocol" Classes="label" />
+                <TextBlock Text="{Binding ProtocolSummary}" TextWrapping="Wrap" Classes="muted" />
+              </StackPanel>
+            </Border>
+          </Grid>
+        </Grid>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

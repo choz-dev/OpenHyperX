@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OpenHyperX.Core\OpenHyperX.Core.csproj" />
+    <ProjectReference Include="..\..\src\OpenHyperX.Hid\OpenHyperX.Hid.csproj" />
+    <ProjectReference Include="..\..\src\OpenHyperX.Devices.CloudAlphaWireless\OpenHyperX.Devices.CloudAlphaWireless.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+</Project>
