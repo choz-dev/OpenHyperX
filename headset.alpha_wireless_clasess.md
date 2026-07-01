@@ -1,4 +1,5 @@
 # HyperXDevice
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -3428,10 +3429,11 @@ namespace NGenuity2.Devices
 			OLS
 		}
 	}
-}
+}```
 
 
 # CMDHSCloudAlphaWirelessBase
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3445,9 +3447,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			return device.ProductID == 5955 || device.ProductID == 5989 || device.ProductID == 2445;
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessAPO
+```csharp
 using System;
 using NGenuity2.Devices.Headset.DTS;
 
@@ -3485,9 +3488,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			handler(this, this.Info);
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessGetAutoShutdown
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3516,9 +3520,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			}
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessGetBatteryInfo
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3553,9 +3558,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			}
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessGetChargeStatus
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3601,9 +3607,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			}
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessGetMicBoomStatus
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3632,9 +3639,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			}
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessGetMicMute
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3669,9 +3677,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			}
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessGetPairingInfo
+```csharp
 using System;
 using NGenuity2.Common;
 
@@ -3705,9 +3714,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			}
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessGetProductColor
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3736,9 +3746,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			}
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessGetSidetoneStatus
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3773,9 +3784,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			}
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessGetSidetoneVolume
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3800,9 +3812,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			}
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessGetVoicePromptStatus
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3837,9 +3850,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			}
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessGetWirelessState
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3873,9 +3887,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			}
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessSetAutoShutdown
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3900,9 +3915,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			device.SetOutputReport(array);
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessSetMicMute
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3934,9 +3950,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			device.SetOutputReport(array);
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessSetSidetoneStatus
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3968,9 +3985,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			device.SetOutputReport(array);
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessSetSidetoneVolume
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -3994,9 +4012,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			device.SetOutputReport(array);
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessSetVoicePromptStatus
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -4028,9 +4047,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 			device.SetOutputReport(array);
 		}
 	}
-}
+}```
 
 # CMDHSCloudAlphaWirelessShowLighting
+```csharp
 using System;
 
 namespace NGenuity2.Devices.Headset.CloudAlphaWireless
@@ -4039,9 +4059,10 @@ namespace NGenuity2.Devices.Headset.CloudAlphaWireless
 	public class CMDHSCloudAlphaWirelessShowLighting : CMDHSCloudAlphaWirelessBase
 	{
 	}
-}
+}```
 
 # HeadsetCloudAlphaWireless
+```csharp
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -4585,5 +4606,5 @@ namespace NGenuity2.Devices.Headset
 		// Token: 0x040021C4 RID: 8644
 		private const int INIT_STATE_VOICE_PROMPT = 32;
 	}
-}
+}```
 
