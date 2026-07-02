@@ -654,8 +654,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         if (status.ConfiguredRenderEndpointCount == 0)
         {
             return status.DetectedRenderEndpointCount == 1
-                ? "1 partial endpoint"
-                : $"{status.DetectedRenderEndpointCount} partial endpoints";
+                ? "1 available endpoint"
+                : $"{status.DetectedRenderEndpointCount} available endpoints";
         }
 
         if (status.ConfiguredRenderEndpointCount == status.DetectedRenderEndpointCount)
@@ -668,8 +668,8 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         var partialEndpointCount = status.DetectedRenderEndpointCount - status.ConfiguredRenderEndpointCount;
         return partialEndpointCount switch
         {
-            1 => $"{status.ConfiguredRenderEndpointCount} configured, 1 partial",
-            _ => $"{status.ConfiguredRenderEndpointCount} configured, {partialEndpointCount} partial"
+            1 => $"{status.ConfiguredRenderEndpointCount} configured, 1 available",
+            _ => $"{status.ConfiguredRenderEndpointCount} configured, {partialEndpointCount} available"
         };
     }
 

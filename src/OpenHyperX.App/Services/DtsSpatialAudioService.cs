@@ -568,7 +568,12 @@ public sealed class DtsSpatialAudioService
             }
 
             endpoint.SetConfig(enabled ? DtsApoEndpointConfig.Dsp : DtsApoEndpointConfig.None);
-            TrySetCurrentOperationMode(endpoint, enabled);
+            // Clearing SpatialEnable can crash inside the DTS APO COM server; SetConfig(None) is the disable path.
+            if (enabled)
+            {
+                TrySetCurrentOperationMode(endpoint);
+            }
+
             return true;
         }
         catch
@@ -582,7 +587,7 @@ public sealed class DtsSpatialAudioService
     }
 
     [SupportedOSPlatform("windows")]
-    private static bool TrySetCurrentOperationMode(IDtsEndpointInfo endpoint, bool enabled)
+    private static bool TrySetCurrentOperationMode(IDtsEndpointInfo endpoint)
     {
         IDtsOperatingMode? mode = null;
         try
@@ -595,17 +600,9 @@ public sealed class DtsSpatialAudioService
                 return false;
             }
 
-            if (enabled)
-            {
-                changed |= TrySetOperationModeValue(() => mode.AutoContentModeEnable = 0);
-                changed |= TrySetOperationModeValue(() => mode.ApoEnable = 1);
-                _ = TrySetOperationModeValue(() => mode.SpatialEnable = 1);
-            }
-            else
-            {
-                _ = TrySetOperationModeValue(() => mode.SpatialEnable = 0);
-                changed |= TrySetOperationModeValue(() => mode.ApoEnable = 0);
-            }
+            changed |= TrySetOperationModeValue(() => mode.AutoContentModeEnable = 0);
+            changed |= TrySetOperationModeValue(() => mode.ApoEnable = 1);
+            _ = TrySetOperationModeValue(() => mode.SpatialEnable = 1);
 
             return changed;
         }
@@ -751,7 +748,12 @@ public sealed record DtsSpatialAudioStatus(
                 return ServiceRunning ? "Ready" : "Service stopped";
             }
 
-            return AnySignalDetected ? "Partial" : "Not detected";
+            if (DriverPackagesPresent && ApoComRegistered && ServiceRegistered && DetectedRenderEndpointCount > 0)
+            {
+                return ServiceRunning ? "Available" : "Service stopped";
+            }
+
+            return AnySignalDetected ? "Partial install" : "Not detected";
         }
     }
 
