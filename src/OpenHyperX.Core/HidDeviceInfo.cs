@@ -6,7 +6,8 @@ public sealed record HidDeviceInfo(
     int ProductId,
     string DisplayName,
     int InputReportLength,
-    int OutputReportLength)
+    int OutputReportLength,
+    int FeatureReportLength = 0)
 {
     public string VendorIdHex => $"0x{VendorId:X4}";
 

@@ -7,8 +7,11 @@ public sealed class HidSharpDeviceEnumerator : IHidDeviceEnumerator
 {
     public IReadOnlyList<HidDeviceInfo> ListDevices(HidDeviceFilter filter)
     {
+        var vendorId = filter.VendorId
+            ?? (filter.VendorIds is { Count: 1 } vendorIds ? vendorIds.First() : null);
+
         var devices = DeviceList.Local
-            .GetHidDevices(filter.VendorId, null, null, null)
+            .GetHidDevices(vendorId, null, null, null)
             .Where(device => filter.Matches(device.VendorID, device.ProductID))
             .OrderBy(device => device.ProductID)
             .ThenBy(device => device.DevicePath, StringComparer.OrdinalIgnoreCase)
@@ -48,7 +51,8 @@ public sealed class HidSharpDeviceEnumerator : IHidDeviceEnumerator
             device.ProductID,
             GetFriendlyName(device),
             device.GetMaxInputReportLength(),
-            device.GetMaxOutputReportLength());
+            device.GetMaxOutputReportLength(),
+            device.GetMaxFeatureReportLength());
     }
 
     private static string GetFriendlyName(HidDevice device)

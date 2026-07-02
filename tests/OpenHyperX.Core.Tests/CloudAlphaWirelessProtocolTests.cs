@@ -106,6 +106,8 @@ public sealed class CloudAlphaWirelessProtocolTests
 
         public int OutputReportLength => 32;
 
+        public int FeatureReportLength => 32;
+
         public Task WriteAsync(byte[] report, CancellationToken cancellationToken = default)
         {
             return Task.CompletedTask;
@@ -123,6 +125,16 @@ public sealed class CloudAlphaWirelessProtocolTests
             CancellationToken cancellationToken = default)
         {
             return Task.FromResult(_responses.GetValueOrDefault(expectedCommand));
+        }
+
+        public Task SetFeatureReportAsync(byte[] report, CancellationToken cancellationToken = default)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task<byte[]?> GetFeatureReportAsync(byte reportId, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult<byte[]?>(null);
         }
 
         public void Dispose()

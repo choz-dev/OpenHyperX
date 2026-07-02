@@ -4,6 +4,7 @@
     <ProjectReference Include="..\OpenHyperX.Core\OpenHyperX.Core.csproj" />
     <ProjectReference Include="..\OpenHyperX.Hid\OpenHyperX.Hid.csproj" />
     <ProjectReference Include="..\OpenHyperX.Devices.CloudAlphaWireless\OpenHyperX.Devices.CloudAlphaWireless.csproj" />
+    <ProjectReference Include="..\OpenHyperX.Devices.QuadCast\OpenHyperX.Devices.QuadCast.csproj" />
   </ItemGroup>
 
   <ItemGroup>

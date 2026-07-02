@@ -44,6 +44,7 @@ Safe by default:
 - Running tests
 - Listing HID devices
 - Reading passive status such as battery, charging state, connection state, mute state, microphone monitoring state, voice prompt state, and auto-shutdown setting
+- Reading known QuadCast status fields such as mute, polar pattern, high-pass state, microphone gain, mix balance, brightness, and reverse-light state
 
 Ask first:
 
@@ -51,8 +52,9 @@ Ask first:
 - Changing microphone monitoring
 - Changing voice prompts
 - Changing auto-shutdown
+- Changing QuadCast polar pattern, high-pass state, microphone gain, mix balance, or lighting
 - Sending unknown command IDs
-- Trying feature reports or output reports not already known to be safe
+- Trying feature reports or output reports not already known to be safe, including QuadCast feature reports beyond the known status/profile reads
 - Pairing, firmware, factory reset, bootloader, or update-related commands
 - Any command that could alter persistent device state
 

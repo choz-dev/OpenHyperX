@@ -17,6 +17,7 @@ public sealed class HidSharpTransport : IHyperXTransport
         _stream = stream;
         InputReportLength = deviceInfo.InputReportLength <= 0 ? HyperXPacket.DefaultReportLength : deviceInfo.InputReportLength;
         OutputReportLength = deviceInfo.OutputReportLength <= 0 ? HyperXPacket.DefaultReportLength : deviceInfo.OutputReportLength;
+        FeatureReportLength = deviceInfo.FeatureReportLength <= 0 ? HyperXPacket.DefaultReportLength : deviceInfo.FeatureReportLength;
     }
 
     public HidDeviceInfo DeviceInfo { get; }
@@ -24,6 +25,8 @@ public sealed class HidSharpTransport : IHyperXTransport
     public int InputReportLength { get; }
 
     public int OutputReportLength { get; }
+
+    public int FeatureReportLength { get; }
 
     public Task WriteAsync(byte[] report, CancellationToken cancellationToken = default)
     {
@@ -114,6 +117,53 @@ public sealed class HidSharpTransport : IHyperXTransport
         }
 
         return null;
+    }
+
+    public Task SetFeatureReportAsync(byte[] report, CancellationToken cancellationToken = default)
+    {
+        return Task.Run(
+            () =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                lock (_sync)
+                {
+                    ThrowIfDisposed();
+                    _stream.SetFeature(report);
+                }
+            },
+            cancellationToken);
+    }
+
+    public Task<byte[]?> GetFeatureReportAsync(byte reportId, CancellationToken cancellationToken = default)
+    {
+        return Task.Run(
+            () =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                lock (_sync)
+                {
+                    ThrowIfDisposed();
+
+                    try
+                    {
+                        var buffer = new byte[FeatureReportLength];
+                        buffer[0] = reportId;
+                        _stream.GetFeature(buffer);
+                        return buffer;
+                    }
+                    catch (TimeoutException)
+                    {
+                        return null;
+                    }
+                    catch (IOException)
+                    {
+                        return null;
+                    }
+                }
+            },
+            cancellationToken);
     }
 
     public void Dispose()

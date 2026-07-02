@@ -6,7 +6,7 @@ using OpenHyperX.Devices.CloudAlphaWireless;
 
 namespace OpenHyperX.App.ViewModels;
 
-public sealed class CloudAlphaWirelessDeviceViewModel : ObservableObject, IDisposable
+public sealed class CloudAlphaWirelessDeviceViewModel : ObservableObject, IConnectedDeviceViewModel
 {
     private static readonly TimeSpan AutoRefreshInterval = TimeSpan.FromSeconds(5);
     private readonly CloudAlphaWirelessClient _client;

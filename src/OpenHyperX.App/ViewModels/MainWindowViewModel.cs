@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OpenHyperX.Core;
 using OpenHyperX.Devices.CloudAlphaWireless;
+using OpenHyperX.Devices.QuadCast;
 
 namespace OpenHyperX.App.ViewModels;
 
@@ -30,7 +31,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     private string _dtsServiceText = "--";
     private string _dtsSummaryText = "Not checked";
     private string _statusMessage = "Supported devices connect automatically when scanned.";
-    private CloudAlphaWirelessDeviceViewModel? _selectedDevice;
+    private IConnectedDeviceViewModel? _selectedDevice;
     private CloseBehaviorOption? _selectedCloseBehaviorOption;
 
     public MainWindowViewModel(
@@ -77,7 +78,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    public ObservableCollection<CloudAlphaWirelessDeviceViewModel> ConnectedDevices { get; } = [];
+    public ObservableCollection<IConnectedDeviceViewModel> ConnectedDevices { get; } = [];
 
     public ObservableCollection<AutoShutdownOption> AutoShutdownOptions { get; }
 
@@ -99,7 +100,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
     };
 
     public string ProtocolSummary =>
-        "Requests use report ID 0x00 followed by 0x21 0xBB and the command byte. Status reads poll the selected device and ignore unrelated notification packets.";
+        "Cloud Alpha Wireless uses 0x21 0xBB reports. QuadCast 2 devices use 0x77 reports; QuadCast S uses HID feature reports.";
 
     public string DtsSummaryText
     {
@@ -280,7 +281,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     public bool CanStartInTrayOnStartup => IsStartupRegistrationSupported && StartWithWindows;
 
-    public CloudAlphaWirelessDeviceViewModel? SelectedDevice
+    public IConnectedDeviceViewModel? SelectedDevice
     {
         get => _selectedDevice;
         set
@@ -293,6 +294,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _selectedDevice, value))
             {
                 OnPropertyChanged(nameof(ActiveDeviceText));
+                OnPropertyChanged(nameof(SelectedCloudAlphaWirelessDevice));
+                OnPropertyChanged(nameof(SelectedQuadCastDevice));
+                OnPropertyChanged(nameof(HasCloudAlphaWirelessDevice));
+                OnPropertyChanged(nameof(HasQuadCastDevice));
                 RefreshStatusCommand.NotifyCanExecuteChanged();
             }
 
@@ -303,16 +308,22 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
+    public CloudAlphaWirelessDeviceViewModel? SelectedCloudAlphaWirelessDevice =>
+        SelectedDevice as CloudAlphaWirelessDeviceViewModel;
+
+    public QuadCastDeviceViewModel? SelectedQuadCastDevice =>
+        SelectedDevice as QuadCastDeviceViewModel;
+
+    public bool HasCloudAlphaWirelessDevice => SelectedCloudAlphaWirelessDevice is not null;
+
+    public bool HasQuadCastDevice => SelectedQuadCastDevice is not null;
+
     public async Task RefreshDevicesAsync()
     {
         await RunAsync(
             async () =>
             {
-                var discoveredDevices = await Task.Run(
-                    () => _deviceEnumerator
-                        .ListDevices(CloudAlphaWirelessDeviceIds.Filter)
-                        .Where(CloudAlphaWirelessDeviceIds.IsLikelyCommandInterface)
-                        .ToArray());
+                var discoveredDevices = await Task.Run(DiscoverSupportedDevices);
 
                 var failures = new List<string>();
                 RemoveMissingDevices(discoveredDevices);
@@ -326,14 +337,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
                     try
                     {
-                        var transport = _deviceEnumerator.Open(deviceInfo);
-                        var client = new CloudAlphaWirelessClient(transport);
-                        var device = new CloudAlphaWirelessDeviceViewModel(
-                            deviceInfo,
-                            client,
-                            AutoShutdownOptions,
-                            _settingsStore);
-                        ConnectedDevices.Add(device);
+                        ConnectedDevices.Add(CreateDeviceViewModel(deviceInfo));
                     }
                     catch (Exception ex)
                     {
@@ -519,11 +523,53 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
 
     private void SelectedDevice_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(CloudAlphaWirelessDeviceViewModel.IsBusy)
-            or nameof(CloudAlphaWirelessDeviceViewModel.IsConnected))
+        if (e.PropertyName is nameof(IConnectedDeviceViewModel.IsBusy)
+            or nameof(IConnectedDeviceViewModel.IsConnected))
         {
             RefreshStatusCommand.NotifyCanExecuteChanged();
         }
+    }
+
+    private HidDeviceInfo[] DiscoverSupportedDevices()
+    {
+        var devices = new List<HidDeviceInfo>();
+        devices.AddRange(
+            _deviceEnumerator
+                .ListDevices(CloudAlphaWirelessDeviceIds.Filter)
+                .Where(CloudAlphaWirelessDeviceIds.IsLikelyCommandInterface));
+        devices.AddRange(
+            _deviceEnumerator
+                .ListDevices(QuadCastDeviceIds.Filter)
+                .Where(QuadCastDeviceIds.IsLikelyCommandInterface));
+
+        return devices
+            .GroupBy(device => device.Path, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.First())
+            .OrderBy(device => device.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(device => device.Path, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private IConnectedDeviceViewModel CreateDeviceViewModel(HidDeviceInfo deviceInfo)
+    {
+        var transport = _deviceEnumerator.Open(deviceInfo);
+
+        if (CloudAlphaWirelessDeviceIds.IsLikelyCommandInterface(deviceInfo))
+        {
+            return new CloudAlphaWirelessDeviceViewModel(
+                deviceInfo,
+                new CloudAlphaWirelessClient(transport),
+                AutoShutdownOptions,
+                _settingsStore);
+        }
+
+        if (QuadCastDeviceIds.IsLikelyCommandInterface(deviceInfo))
+        {
+            return new QuadCastDeviceViewModel(deviceInfo, new QuadCastClient(transport));
+        }
+
+        transport.Dispose();
+        throw new InvalidOperationException("The selected HID interface is not supported.");
     }
 
     private void UpdateDeviceCollectionProperties()

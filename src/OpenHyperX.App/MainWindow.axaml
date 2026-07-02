@@ -75,24 +75,50 @@
                 <TextBlock Text="{Binding SelectedDevice.StatusMessage}" Classes="muted" TextWrapping="Wrap" />
               </StackPanel>
 
-              <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="12">
+              <Grid IsVisible="{Binding HasCloudAlphaWirelessDevice}"
+                    RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                    ColumnDefinitions="*,Auto"
+                    RowSpacing="12">
                 <TextBlock Text="Battery" Classes="label" />
-                <TextBlock Grid.Column="1" Text="{Binding SelectedDevice.BatteryText}" Classes="metric" />
+                <TextBlock Grid.Column="1" Text="{Binding SelectedCloudAlphaWirelessDevice.BatteryText}" Classes="metric" />
 
                 <TextBlock Grid.Row="1" Text="Charging" Classes="label" />
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedDevice.ChargingText}" Classes="metric" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedCloudAlphaWirelessDevice.ChargingText}" Classes="metric" />
 
                 <TextBlock Grid.Row="2" Text="Pair ID" Classes="label" />
-                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedDevice.PairIdText}" Classes="metric" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedCloudAlphaWirelessDevice.PairIdText}" Classes="metric" />
 
                 <TextBlock Grid.Row="3" Text="Auto shutdown" Classes="label" />
-                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedDevice.AutoShutdownText}" Classes="metric" />
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedCloudAlphaWirelessDevice.AutoShutdownText}" Classes="metric" />
 
                 <TextBlock Grid.Row="4" Text="Mic boom" Classes="label" />
-                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedDevice.MicrophoneBoomText}" Classes="metric" />
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedCloudAlphaWirelessDevice.MicrophoneBoomText}" Classes="metric" />
 
                 <TextBlock Grid.Row="5" Text="Product color" Classes="label" />
-                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedDevice.ProductColorText}" Classes="metric" />
+                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedCloudAlphaWirelessDevice.ProductColorText}" Classes="metric" />
+              </Grid>
+
+              <Grid IsVisible="{Binding HasQuadCastDevice}"
+                    RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
+                    ColumnDefinitions="*,Auto"
+                    RowSpacing="12">
+                <TextBlock Text="Microphone" Classes="label" />
+                <TextBlock Grid.Column="1" Text="{Binding SelectedQuadCastDevice.MuteText}" Classes="metric" />
+
+                <TextBlock Grid.Row="1" Text="Polar pattern" Classes="label" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedQuadCastDevice.PolarPatternText}" Classes="metric" />
+
+                <TextBlock Grid.Row="2" Text="High-pass" Classes="label" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedQuadCastDevice.HighPassText}" Classes="metric" />
+
+                <TextBlock Grid.Row="3" Text="Gain" Classes="label" />
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedQuadCastDevice.MicrophoneGainText}" Classes="metric" />
+
+                <TextBlock Grid.Row="4" Text="Mix balance" Classes="label" />
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedQuadCastDevice.MixBalanceText}" Classes="metric" />
+
+                <TextBlock Grid.Row="5" Text="Lighting" Classes="label" />
+                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedQuadCastDevice.BrightnessText}" Classes="metric" />
               </Grid>
 
               <ProgressBar IsIndeterminate="True"
@@ -102,30 +128,33 @@
           </Border>
 
           <Border Grid.Row="1" Grid.Column="1" Classes="panel">
-            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="22">
-              <TextBlock Text="{Binding SelectedDevice.DeviceType}" Classes="section-title" />
+            <Grid>
+              <Grid IsVisible="{Binding HasCloudAlphaWirelessDevice}"
+                    RowDefinitions="Auto,Auto,*"
+                    RowSpacing="22">
+              <TextBlock Text="{Binding SelectedCloudAlphaWirelessDevice.DeviceType}" Classes="section-title" />
 
               <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="18">
                 <StackPanel Classes="setting" Spacing="8">
                   <TextBlock Text="Microphone" Classes="label" />
-                  <ToggleSwitch IsChecked="{Binding SelectedDevice.MicMuted}"
-                                IsEnabled="{Binding SelectedDevice.ControlsEnabled}"
+                  <ToggleSwitch IsChecked="{Binding SelectedCloudAlphaWirelessDevice.MicMuted}"
+                                IsEnabled="{Binding SelectedCloudAlphaWirelessDevice.ControlsEnabled}"
                                 OnContent="Muted"
                                 OffContent="Live" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Classes="setting" Spacing="8">
                   <TextBlock Text="Microphone monitoring" Classes="label" />
-                  <ToggleSwitch IsChecked="{Binding SelectedDevice.MicrophoneMonitoringEnabled}"
-                                IsEnabled="{Binding SelectedDevice.ControlsEnabled}"
+                  <ToggleSwitch IsChecked="{Binding SelectedCloudAlphaWirelessDevice.MicrophoneMonitoringEnabled}"
+                                IsEnabled="{Binding SelectedCloudAlphaWirelessDevice.ControlsEnabled}"
                                 OnContent="On"
                                 OffContent="Off" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Classes="setting" Spacing="8">
                   <TextBlock Text="Voice prompts" Classes="label" />
-                  <ToggleSwitch IsChecked="{Binding SelectedDevice.VoicePromptEnabled}"
-                                IsEnabled="{Binding SelectedDevice.ControlsEnabled}"
+                  <ToggleSwitch IsChecked="{Binding SelectedCloudAlphaWirelessDevice.VoicePromptEnabled}"
+                                IsEnabled="{Binding SelectedCloudAlphaWirelessDevice.ControlsEnabled}"
                                 OnContent="On"
                                 OffContent="Off" />
                 </StackPanel>
@@ -135,8 +164,8 @@
                 <StackPanel Spacing="8">
                   <TextBlock Text="Auto shutdown" Classes="label" />
                   <ComboBox ItemsSource="{Binding AutoShutdownOptions}"
-                            SelectedItem="{Binding SelectedDevice.SelectedAutoShutdownOption}"
-                            IsEnabled="{Binding SelectedDevice.ControlsEnabled}"
+                            SelectedItem="{Binding SelectedCloudAlphaWirelessDevice.SelectedAutoShutdownOption}"
+                            IsEnabled="{Binding SelectedCloudAlphaWirelessDevice.ControlsEnabled}"
                             MinHeight="38">
                     <ComboBox.ItemTemplate>
                       <DataTemplate>
@@ -152,6 +181,71 @@
                     <TextBlock Text="{Binding ProtocolSummary}" TextWrapping="Wrap" Classes="muted" />
                   </StackPanel>
                 </Border>
+              </Grid>
+              </Grid>
+
+              <Grid IsVisible="{Binding HasQuadCastDevice}"
+                    RowDefinitions="Auto,Auto,Auto,*"
+                    RowSpacing="22">
+              <TextBlock Text="{Binding SelectedQuadCastDevice.DeviceType}" Classes="section-title" />
+
+              <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="18">
+                <StackPanel Classes="setting" Spacing="8">
+                  <TextBlock Text="Microphone" Classes="label" />
+                  <ToggleSwitch IsChecked="{Binding SelectedQuadCastDevice.Muted}"
+                                IsEnabled="{Binding SelectedQuadCastDevice.CanChangeReportSettings}"
+                                OnContent="Muted"
+                                OffContent="Live" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Classes="setting" Spacing="8">
+                  <TextBlock Text="High-pass" Classes="label" />
+                  <ToggleSwitch IsChecked="{Binding SelectedQuadCastDevice.HighPassEnabled}"
+                                IsEnabled="{Binding SelectedQuadCastDevice.CanChangeReportSettings}"
+                                OnContent="On"
+                                OffContent="Off" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Classes="setting" Spacing="8">
+                  <TextBlock Text="Polar pattern" Classes="label" />
+                  <ComboBox ItemsSource="{Binding SelectedQuadCastDevice.PatternOptions}"
+                            SelectedItem="{Binding SelectedQuadCastDevice.SelectedPolarPatternOption}"
+                            IsEnabled="{Binding SelectedQuadCastDevice.CanChangeReportSettings}"
+                            MinHeight="38">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding Label}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
+              </Grid>
+
+              <Grid Grid.Row="2"
+                    ColumnDefinitions="*,*,*"
+                    ColumnSpacing="18">
+                <StackPanel Classes="setting" Spacing="8">
+                  <TextBlock Text="Gain" Classes="label" />
+                  <TextBlock Text="{Binding SelectedQuadCastDevice.MicrophoneGainText}" Classes="metric" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Classes="setting" Spacing="8">
+                  <TextBlock Text="Mix balance" Classes="label" />
+                  <TextBlock Text="{Binding SelectedQuadCastDevice.MixBalanceText}" Classes="metric" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Classes="setting" Spacing="8">
+                  <TextBlock Text="Reverse lights" Classes="label" />
+                  <TextBlock Text="{Binding SelectedQuadCastDevice.ReverseLightsText}" Classes="metric" />
+                </StackPanel>
+              </Grid>
+
+              <Border Grid.Row="3" Classes="protocol-box">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="Protocol" Classes="label" />
+                  <TextBlock Text="{Binding ProtocolSummary}" TextWrapping="Wrap" Classes="muted" />
+                </StackPanel>
+              </Border>
               </Grid>
             </Grid>
           </Border>

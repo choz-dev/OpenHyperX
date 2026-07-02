@@ -2,17 +2,20 @@
 
 OpenHyperX is an unofficial, open-source desktop app for controlling HyperX devices.
 
-The first supported target is the **HyperX Cloud Alpha Wireless** headset. The long-term goal is to grow into a full HyperX control suite with support for headsets, keyboards, mice, microphones, RGB devices, and other products commonly managed through NGenuity.
+The first supported target was the **HyperX Cloud Alpha Wireless** headset. OpenHyperX now also has early **QuadCast microphone** support. The long-term goal is to grow into a full HyperX control suite with support for headsets, keyboards, mice, microphones, RGB devices, and other products commonly managed through NGenuity.
 
 OpenHyperX is built as a clean-room, original implementation using reverse-engineered protocol knowledge. It is not affiliated with, endorsed by, or sponsored by HP, HyperX, or NGenuity.
 
 ## Status
 
-This project is early and experimental. The app can currently discover and communicate with the Cloud Alpha Wireless HID command interface.
+This project is early and experimental. The app can currently discover and communicate with the Cloud Alpha Wireless HID command interface and several QuadCast microphone command interfaces.
 
 | Device | Status | Current support |
 | --- | --- | --- |
 | Cloud Alpha Wireless | In progress | Connection state, battery, charging state, mic mute, mic boom status, microphone monitoring, voice prompts, auto-shutdown, product color code |
+| QuadCast S | In progress | Discovery, read-only feature-report status for mute, polar pattern, brightness, and reverse-light state on known controller interfaces |
+| QuadCast 2 | In progress | Discovery, mute status/control, polar pattern status/control, high-pass status/control |
+| QuadCast 2 S | In progress | Discovery, mute status/control, polar pattern status/control, high-pass status/control, microphone gain readback, mix balance readback |
 
 ## Features
 
@@ -28,6 +31,9 @@ This project is early and experimental. The app can currently discover and commu
 - Cloud Alpha Wireless status reading
 - Cloud Alpha Wireless automatic status refresh
 - Cloud Alpha Wireless basic setting writes
+- QuadCast microphone discovery and automatic status refresh
+- QuadCast 2 / 2 S microphone controls for known safe command reports
+- QuadCast S status reads through HID feature reports
 - Command queue for device writes
 - CLI tool for safe diagnostics
 - xUnit tests for protocol and command behavior
@@ -49,6 +55,8 @@ The current desktop app includes:
 - Start-with-Windows controls
 - DTS spatial audio driver/APO status and enable toggle
 - Light/dark theme switch
+- QuadCast microphone status for mute, polar pattern, high-pass, gain, mix balance, and lighting state where supported
+- QuadCast 2 / 2 S controls for mute, high-pass, and polar pattern
 
 ## Safety
 
@@ -60,11 +68,14 @@ Safe diagnostic operations include:
 - Reading connection state
 - Reading battery and charging state
 - Reading mic mute, mic boom, microphone monitoring, voice prompt, auto-shutdown, and product color state
+- Reading known QuadCast mute, polar pattern, high-pass, gain, mix balance, brightness, and reverse-light state
 
 Be careful with:
 
 - Unknown command IDs
 - Feature reports
+- QuadCast feature reports beyond the known read-only status/profile probes
+- QuadCast lighting, firmware, reset, gain, mix balance, or unknown command writes
 - Pairing commands
 - Firmware or bootloader commands
 - Factory reset commands
@@ -131,6 +142,7 @@ src/
   OpenHyperX.Core/                       Shared abstractions, packets, command queue
   OpenHyperX.Hid/                        HidSharp-backed HID transport
   OpenHyperX.Devices.CloudAlphaWireless/ Cloud Alpha Wireless protocol module
+  OpenHyperX.Devices.QuadCast/           QuadCast microphone protocol module
 tools/
   OpenHyperX.Cli/                        Diagnostic CLI
 tests/
@@ -169,7 +181,7 @@ dotnet run --project src\OpenHyperX.App
 
 ## CLI Diagnostics
 
-List matching Cloud Alpha Wireless HID interfaces:
+List matching supported HID interfaces:
 
 ```powershell
 dotnet run --project tools\OpenHyperX.Cli
@@ -207,6 +219,26 @@ Known command groups currently implemented:
 - Product color code
 
 The command map was derived from reverse-engineered behavior notes in `headset.alpha_wireless_classes.md`.
+
+## QuadCast Notes
+
+QuadCast support is split into a dedicated `OpenHyperX.Devices.QuadCast` module.
+
+Known command interfaces currently handled:
+
+- QuadCast S controller endpoints: `VID_03F0` with `PID_028C` or `PID_068C`
+- QuadCast 2 command endpoint: `VID_03F0` with `PID_09AF`
+- QuadCast 2 S command endpoints: `VID_03F0` with `PID_02B5` or `PID_03B5`
+
+QuadCast 2 and QuadCast 2 S use reports shaped like:
+
+```text
+0x77 <command> <payload...>
+```
+
+QuadCast S uses HID feature report `0x07` for the current status/profile probes. Those feature reports are read-only in the app right now.
+
+The QuadCast command map was derived from reverse-engineered behavior notes in `quadcast/hyperx_quadcast.md`.
 
 ## Adding Device Support
 

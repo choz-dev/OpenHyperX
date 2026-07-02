@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenHyperX.Cli", "tools\Ope
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenHyperX.Core.Tests", "tests\OpenHyperX.Core.Tests\OpenHyperX.Core.Tests.csproj", "{8F72B840-26AA-465A-A0EE-9160DFD344F3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenHyperX.Devices.QuadCast", "src\OpenHyperX.Devices.QuadCast\OpenHyperX.Devices.QuadCast.csproj", "{BD0C980C-F849-484D-A06E-AA73B979706D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -99,6 +101,18 @@ Global
 		{8F72B840-26AA-465A-A0EE-9160DFD344F3}.Release|x64.Build.0 = Release|Any CPU
 		{8F72B840-26AA-465A-A0EE-9160DFD344F3}.Release|x86.ActiveCfg = Release|Any CPU
 		{8F72B840-26AA-465A-A0EE-9160DFD344F3}.Release|x86.Build.0 = Release|Any CPU
+		{BD0C980C-F849-484D-A06E-AA73B979706D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BD0C980C-F849-484D-A06E-AA73B979706D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BD0C980C-F849-484D-A06E-AA73B979706D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BD0C980C-F849-484D-A06E-AA73B979706D}.Debug|x64.Build.0 = Debug|Any CPU
+		{BD0C980C-F849-484D-A06E-AA73B979706D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{BD0C980C-F849-484D-A06E-AA73B979706D}.Debug|x86.Build.0 = Debug|Any CPU
+		{BD0C980C-F849-484D-A06E-AA73B979706D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BD0C980C-F849-484D-A06E-AA73B979706D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BD0C980C-F849-484D-A06E-AA73B979706D}.Release|x64.ActiveCfg = Release|Any CPU
+		{BD0C980C-F849-484D-A06E-AA73B979706D}.Release|x64.Build.0 = Release|Any CPU
+		{BD0C980C-F849-484D-A06E-AA73B979706D}.Release|x86.ActiveCfg = Release|Any CPU
+		{BD0C980C-F849-484D-A06E-AA73B979706D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -110,5 +124,6 @@ Global
 		{7B270520-CAA1-474E-8435-9D68C785DAC9} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{58495BCB-C313-4640-AFD8-3E3D2F82BDDD} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{8F72B840-26AA-465A-A0EE-9160DFD344F3} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{BD0C980C-F849-484D-A06E-AA73B979706D} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal
