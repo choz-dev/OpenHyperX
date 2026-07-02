@@ -26,6 +26,7 @@ This project is early and experimental. The app can currently discover and commu
 - Multi-device session plumbing for future product modules
 - Auto-saved device preferences
 - Remembered close behavior with system tray support
+- System tray quick controls for supported device microphone actions
 - Optional per-user startup registration
 - DTS spatial audio diagnostics and opt-in enable flow
 - Cloud Alpha Wireless status reading
@@ -52,6 +53,7 @@ The current desktop app includes:
 - Auto-shutdown selector
 - General settings tab
 - Close-to-tray or full-exit behavior selector
+- System tray menu with open, refresh, mute, mic monitoring, and supported microphone filter toggles
 - Start-with-Windows controls
 - DTS spatial audio driver/APO status and enable toggle
 - Light/dark theme switch

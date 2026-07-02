@@ -136,6 +136,17 @@ public sealed class CloudAlphaWirelessDeviceViewModel : ObservableObject, IConne
         get => _micMuted;
         set
         {
+            if (_applyingDeviceState)
+            {
+                SetProperty(ref _micMuted, value);
+                return;
+            }
+
+            if (!ControlsEnabled)
+            {
+                return;
+            }
+
             if (SetProperty(ref _micMuted, value))
             {
                 _ = ApplyDeviceChangeAsync(() => _client.SetMicMuteAsync(value), "Microphone updated");
@@ -148,6 +159,17 @@ public sealed class CloudAlphaWirelessDeviceViewModel : ObservableObject, IConne
         get => _microphoneMonitoringEnabled;
         set
         {
+            if (_applyingDeviceState)
+            {
+                SetProperty(ref _microphoneMonitoringEnabled, value);
+                return;
+            }
+
+            if (!ControlsEnabled)
+            {
+                return;
+            }
+
             if (SetProperty(ref _microphoneMonitoringEnabled, value))
             {
                 _ = ApplyDeviceChangeAsync(
@@ -162,11 +184,38 @@ public sealed class CloudAlphaWirelessDeviceViewModel : ObservableObject, IConne
         get => _voicePromptEnabled;
         set
         {
+            if (_applyingDeviceState)
+            {
+                SetProperty(ref _voicePromptEnabled, value);
+                return;
+            }
+
+            if (!ControlsEnabled)
+            {
+                return;
+            }
+
             if (SetProperty(ref _voicePromptEnabled, value))
             {
                 _ = ApplyDeviceChangeAsync(() => _client.SetVoicePromptEnabledAsync(value), "Voice prompts updated");
             }
         }
+    }
+
+    public Task SetMicMutedAsync(bool muted)
+    {
+        return ApplyDeviceChangeAsync(
+            () => _client.SetMicMuteAsync(muted),
+            "Microphone updated",
+            () => SetProperty(ref _micMuted, muted, nameof(MicMuted)));
+    }
+
+    public Task SetMicrophoneMonitoringEnabledAsync(bool enabled)
+    {
+        return ApplyDeviceChangeAsync(
+            () => _client.SetMicrophoneMonitoringEnabledAsync(enabled),
+            "Microphone monitoring updated",
+            () => SetProperty(ref _microphoneMonitoringEnabled, enabled, nameof(MicrophoneMonitoringEnabled)));
     }
 
     public AutoShutdownOption? SelectedAutoShutdownOption
@@ -374,7 +423,10 @@ public sealed class CloudAlphaWirelessDeviceViewModel : ObservableObject, IConne
         }
     }
 
-    private async Task ApplyDeviceChangeAsync(Func<Task> apply, string successMessage)
+    private async Task ApplyDeviceChangeAsync(
+        Func<Task> apply,
+        string successMessage,
+        Action? applyLocalState = null)
     {
         if (_applyingDeviceState || !ControlsEnabled)
         {
@@ -385,6 +437,7 @@ public sealed class CloudAlphaWirelessDeviceViewModel : ObservableObject, IConne
             async () =>
             {
                 await RunDeviceOperationAsync(apply).ConfigureAwait(true);
+                applyLocalState?.Invoke();
                 SaveCurrentSettings();
                 StatusMessage = successMessage;
             }).ConfigureAwait(false);
