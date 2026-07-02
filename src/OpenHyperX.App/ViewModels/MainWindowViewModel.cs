@@ -1,6 +1,8 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Styling;
+using OpenHyperX.App.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OpenHyperX.Core;
@@ -11,31 +13,45 @@ namespace OpenHyperX.App.ViewModels;
 public sealed class MainWindowViewModel : ObservableObject, IDisposable
 {
     private readonly IHidDeviceEnumerator _deviceEnumerator;
-    private CloudAlphaWirelessClient? _client;
-    private bool _applyingDeviceState;
+    private readonly DeviceSettingsStore _settingsStore;
+    private readonly StartupRegistrationService _startupRegistrationService;
+    private readonly DtsSpatialAudioService _dtsSpatialAudioService;
     private bool _disposed;
+    private bool _applyingDtsSpatialAudioSetting;
+    private bool _dtsSpatialAudioEnabled;
+    private bool _isDtsBusy;
     private bool _isBusy;
-    private bool _isConnected;
     private bool _isDarkMode;
-    private bool _micMuted;
-    private bool _sidetoneEnabled;
-    private bool _voicePromptEnabled;
-    private string _activeDeviceText = "Cloud Alpha Wireless";
-    private string _statusMessage = "Ready";
-    private string _batteryText = "--";
-    private string _chargingText = "--";
-    private string _pairIdText = "--";
-    private string _autoShutdownText = "--";
-    private DeviceListItemViewModel? _selectedDevice;
-    private AutoShutdownOption? _selectedAutoShutdownOption;
+    private bool _startInTrayOnStartup;
+    private bool _startWithWindows;
+    private string _dtsApoText = "--";
+    private string _dtsDriverText = "--";
+    private string _dtsEndpointText = "--";
+    private string _dtsServiceText = "--";
+    private string _dtsSummaryText = "Not checked";
+    private string _statusMessage = "Supported devices connect automatically when scanned.";
+    private CloudAlphaWirelessDeviceViewModel? _selectedDevice;
+    private CloseBehaviorOption? _selectedCloseBehaviorOption;
 
-    public MainWindowViewModel(IHidDeviceEnumerator deviceEnumerator)
+    public MainWindowViewModel(
+        IHidDeviceEnumerator deviceEnumerator,
+        DeviceSettingsStore settingsStore,
+        StartupRegistrationService startupRegistrationService,
+        DtsSpatialAudioService dtsSpatialAudioService)
     {
         _deviceEnumerator = deviceEnumerator;
+        _settingsStore = settingsStore;
+        _startupRegistrationService = startupRegistrationService;
+        _dtsSpatialAudioService = dtsSpatialAudioService;
+        _isDarkMode = settingsStore.IsDarkMode;
+        _dtsSpatialAudioEnabled = settingsStore.DtsSpatialAudioEnabled;
+        _startInTrayOnStartup = settingsStore.StartInTrayOnStartup;
+        _startWithWindows = startupRegistrationService.IsRegistered;
+        ApplyTheme(_isDarkMode);
 
-        RefreshDevicesCommand = new AsyncRelayCommand(RefreshDevicesAsync, CanRun);
-        ConnectCommand = new AsyncRelayCommand(ConnectAsync, CanConnect);
-        RefreshStatusCommand = new AsyncRelayCommand(RefreshStatusAsync, CanRefreshStatus);
+        RefreshDevicesCommand = new AsyncRelayCommand(RefreshDevicesAsync, CanScan);
+        RefreshStatusCommand = new AsyncRelayCommand(RefreshSelectedStatusAsync, CanRefreshSelectedStatus);
+        RefreshDtsStatusCommand = new AsyncRelayCommand(RefreshDtsStatusAsync, CanRunDtsAction);
 
         AutoShutdownOptions =
         [
@@ -46,22 +62,113 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             new AutoShutdownOption(30, "30 minutes"),
             new AutoShutdownOption(60, "60 minutes")
         ];
+
+        CloseBehaviorOptions =
+        [
+            new CloseBehaviorOption(AppCloseBehavior.Ask, "Ask when closing"),
+            new CloseBehaviorOption(AppCloseBehavior.Exit, "Exit application"),
+            new CloseBehaviorOption(AppCloseBehavior.CloseToTray, "Close to system tray")
+        ];
+        _selectedCloseBehaviorOption = FindCloseBehaviorOption(settingsStore.CloseBehavior);
+        RefreshDtsStatus(announce: false);
+        if (_dtsSpatialAudioEnabled)
+        {
+            _ = ApplyDtsSpatialAudioPreferenceAsync(enabled: true);
+        }
     }
 
-    public ObservableCollection<DeviceListItemViewModel> Devices { get; } = [];
+    public ObservableCollection<CloudAlphaWirelessDeviceViewModel> ConnectedDevices { get; } = [];
 
     public ObservableCollection<AutoShutdownOption> AutoShutdownOptions { get; }
 
-    public AsyncRelayCommand RefreshDevicesCommand { get; }
+    public ObservableCollection<CloseBehaviorOption> CloseBehaviorOptions { get; }
 
-    public AsyncRelayCommand ConnectCommand { get; }
+    public AsyncRelayCommand RefreshDevicesCommand { get; }
 
     public AsyncRelayCommand RefreshStatusCommand { get; }
 
-    public string ConnectionText => IsConnected ? "Connected" : "Not connected";
+    public AsyncRelayCommand RefreshDtsStatusCommand { get; }
+
+    public string ActiveDeviceText => SelectedDevice?.DisplayName ?? "No supported device selected";
+
+    public string DeviceCountText => ConnectedDevices.Count switch
+    {
+        0 => "No devices connected",
+        1 => "1 device connected",
+        _ => $"{ConnectedDevices.Count} devices connected"
+    };
 
     public string ProtocolSummary =>
-        "Requests use report ID 0x00 followed by 0x21 0xBB and the command byte. Status reads poll the headset and ignore unrelated notification packets.";
+        "Requests use report ID 0x00 followed by 0x21 0xBB and the command byte. Status reads poll the selected device and ignore unrelated notification packets.";
+
+    public string DtsSummaryText
+    {
+        get => _dtsSummaryText;
+        private set => SetProperty(ref _dtsSummaryText, value);
+    }
+
+    public string DtsDriverText
+    {
+        get => _dtsDriverText;
+        private set => SetProperty(ref _dtsDriverText, value);
+    }
+
+    public string DtsApoText
+    {
+        get => _dtsApoText;
+        private set => SetProperty(ref _dtsApoText, value);
+    }
+
+    public string DtsEndpointText
+    {
+        get => _dtsEndpointText;
+        private set => SetProperty(ref _dtsEndpointText, value);
+    }
+
+    public string DtsServiceText
+    {
+        get => _dtsServiceText;
+        private set => SetProperty(ref _dtsServiceText, value);
+    }
+
+    public bool DtsSpatialAudioEnabled
+    {
+        get => _dtsSpatialAudioEnabled;
+        set
+        {
+            if (!SetProperty(ref _dtsSpatialAudioEnabled, value))
+            {
+                return;
+            }
+
+            _settingsStore.SaveDtsSpatialAudioEnabled(value);
+            if (!_applyingDtsSpatialAudioSetting)
+            {
+                _ = ApplyDtsSpatialAudioPreferenceAsync(value);
+            }
+        }
+    }
+
+    public bool IsDtsBusy
+    {
+        get => _isDtsBusy;
+        private set
+        {
+            if (SetProperty(ref _isDtsBusy, value))
+            {
+                OnPropertyChanged(nameof(DtsControlsEnabled));
+                RefreshDtsStatusCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool DtsControlsEnabled => !IsDtsBusy;
+
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        private set => SetProperty(ref _statusMessage, value);
+    }
 
     public bool IsDarkMode
     {
@@ -71,6 +178,7 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _isDarkMode, value))
             {
                 ApplyTheme(value);
+                _settingsStore.SaveTheme(value);
             }
         }
     }
@@ -83,118 +191,114 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             if (SetProperty(ref _isBusy, value))
             {
                 RefreshDevicesCommand.NotifyCanExecuteChanged();
-                ConnectCommand.NotifyCanExecuteChanged();
                 RefreshStatusCommand.NotifyCanExecuteChanged();
             }
         }
     }
 
-    public bool IsConnected
+    public CloseBehaviorOption? SelectedCloseBehaviorOption
     {
-        get => _isConnected;
-        private set
+        get => _selectedCloseBehaviorOption;
+        set
         {
-            if (SetProperty(ref _isConnected, value))
+            if (SetProperty(ref _selectedCloseBehaviorOption, value) && value is not null)
             {
-                OnPropertyChanged(nameof(ConnectionText));
-                ConnectCommand.NotifyCanExecuteChanged();
-                RefreshStatusCommand.NotifyCanExecuteChanged();
+                _settingsStore.SaveCloseBehavior(value.Behavior);
+                OnPropertyChanged(nameof(CloseBehavior));
             }
         }
     }
 
-    public string ActiveDeviceText
+    public AppCloseBehavior CloseBehavior => SelectedCloseBehaviorOption?.Behavior ?? AppCloseBehavior.Ask;
+
+    public bool IsStartupRegistrationSupported => _startupRegistrationService.IsSupported;
+
+    public bool StartWithWindows
     {
-        get => _activeDeviceText;
-        private set => SetProperty(ref _activeDeviceText, value);
+        get => _startWithWindows;
+        set
+        {
+            if (_startWithWindows == value)
+            {
+                return;
+            }
+
+            var previousValue = _startWithWindows;
+            if (!SetProperty(ref _startWithWindows, value))
+            {
+                return;
+            }
+
+            OnPropertyChanged(nameof(CanStartInTrayOnStartup));
+
+            try
+            {
+                _startupRegistrationService.SetRegistered(value, StartInTrayOnStartup);
+                StatusMessage = value
+                    ? "OpenHyperX will start when you sign in."
+                    : "OpenHyperX startup registration removed.";
+            }
+            catch (Exception ex)
+            {
+                SetProperty(ref _startWithWindows, previousValue, nameof(StartWithWindows));
+                OnPropertyChanged(nameof(CanStartInTrayOnStartup));
+                StatusMessage = ex.Message;
+            }
+        }
     }
 
-    public string StatusMessage
+    public bool StartInTrayOnStartup
     {
-        get => _statusMessage;
-        private set => SetProperty(ref _statusMessage, value);
+        get => _startInTrayOnStartup;
+        set
+        {
+            if (!SetProperty(ref _startInTrayOnStartup, value))
+            {
+                return;
+            }
+
+            _settingsStore.SaveStartInTrayOnStartup(value);
+
+            if (!StartWithWindows)
+            {
+                return;
+            }
+
+            try
+            {
+                _startupRegistrationService.SetRegistered(registered: true, value);
+                StatusMessage = value
+                    ? "OpenHyperX will start in the system tray."
+                    : "OpenHyperX will open normally when you sign in.";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = ex.Message;
+            }
+        }
     }
 
-    public string BatteryText
-    {
-        get => _batteryText;
-        private set => SetProperty(ref _batteryText, value);
-    }
+    public bool CanStartInTrayOnStartup => IsStartupRegistrationSupported && StartWithWindows;
 
-    public string ChargingText
-    {
-        get => _chargingText;
-        private set => SetProperty(ref _chargingText, value);
-    }
-
-    public string PairIdText
-    {
-        get => _pairIdText;
-        private set => SetProperty(ref _pairIdText, value);
-    }
-
-    public string AutoShutdownText
-    {
-        get => _autoShutdownText;
-        private set => SetProperty(ref _autoShutdownText, value);
-    }
-
-    public DeviceListItemViewModel? SelectedDevice
+    public CloudAlphaWirelessDeviceViewModel? SelectedDevice
     {
         get => _selectedDevice;
         set
         {
+            if (_selectedDevice is not null)
+            {
+                _selectedDevice.PropertyChanged -= SelectedDevice_PropertyChanged;
+            }
+
             if (SetProperty(ref _selectedDevice, value))
             {
-                ConnectCommand.NotifyCanExecuteChanged();
+                OnPropertyChanged(nameof(ActiveDeviceText));
+                RefreshStatusCommand.NotifyCanExecuteChanged();
             }
-        }
-    }
 
-    public bool MicMuted
-    {
-        get => _micMuted;
-        set
-        {
-            if (SetProperty(ref _micMuted, value))
+            if (_selectedDevice is not null)
             {
-                _ = ApplyToggleAsync(() => _client?.SetMicMuteAsync(value) ?? Task.CompletedTask, "Microphone updated");
-            }
-        }
-    }
-
-    public bool SidetoneEnabled
-    {
-        get => _sidetoneEnabled;
-        set
-        {
-            if (SetProperty(ref _sidetoneEnabled, value))
-            {
-                _ = ApplyToggleAsync(() => _client?.SetSidetoneEnabledAsync(value) ?? Task.CompletedTask, "Sidetone updated");
-            }
-        }
-    }
-
-    public bool VoicePromptEnabled
-    {
-        get => _voicePromptEnabled;
-        set
-        {
-            if (SetProperty(ref _voicePromptEnabled, value))
-            {
-                _ = ApplyToggleAsync(() => _client?.SetVoicePromptEnabledAsync(value) ?? Task.CompletedTask, "Voice prompts updated");
-            }
-        }
-    }
-
-    public AutoShutdownOption? SelectedAutoShutdownOption
-    {
-        get => _selectedAutoShutdownOption;
-        set
-        {
-            if (SetProperty(ref _selectedAutoShutdownOption, value) && value is not null)
-            {
-                _ = ApplyToggleAsync(() => _client?.SetAutoShutdownAsync(value.Minutes) ?? Task.CompletedTask, "Auto shutdown updated");
+                _selectedDevice.PropertyChanged += SelectedDevice_PropertyChanged;
             }
         }
     }
@@ -204,121 +308,181 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         await RunAsync(
             async () =>
             {
-                var devices = await Task.Run(
+                var discoveredDevices = await Task.Run(
                     () => _deviceEnumerator
                         .ListDevices(CloudAlphaWirelessDeviceIds.Filter)
                         .Where(CloudAlphaWirelessDeviceIds.IsLikelyCommandInterface)
                         .ToArray());
 
-                Devices.Clear();
-                foreach (var device in devices)
+                var failures = new List<string>();
+                RemoveMissingDevices(discoveredDevices);
+
+                foreach (var deviceInfo in discoveredDevices)
                 {
-                    Devices.Add(new DeviceListItemViewModel(device));
+                    if (ConnectedDevices.Any(device => SamePath(device.DevicePath, deviceInfo.Path)))
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        var transport = _deviceEnumerator.Open(deviceInfo);
+                        var client = new CloudAlphaWirelessClient(transport);
+                        var device = new CloudAlphaWirelessDeviceViewModel(
+                            deviceInfo,
+                            client,
+                            AutoShutdownOptions,
+                            _settingsStore);
+                        ConnectedDevices.Add(device);
+                    }
+                    catch (Exception ex)
+                    {
+                        failures.Add($"{deviceInfo.DisplayName}: {ex.Message}");
+                    }
                 }
 
-                SelectedDevice ??= Devices.FirstOrDefault();
-                StatusMessage = Devices.Count == 0
-                    ? "No Cloud Alpha Wireless HID device found."
-                    : $"{Devices.Count} matching HID interface(s) found.";
+                SelectedDevice ??= ConnectedDevices.FirstOrDefault();
+                await InitializeAllConnectedDevicesAsync();
+                UpdateDeviceCollectionProperties();
+
+                StatusMessage = BuildScanStatusMessage(discoveredDevices.Length, failures);
             });
     }
 
-    private async Task ConnectAsync()
+    private async Task RefreshSelectedStatusAsync()
     {
         if (SelectedDevice is null)
         {
+            StatusMessage = "No supported device is selected.";
             return;
         }
 
-        await RunAsync(
-            async () =>
+        await SelectedDevice.RefreshStatusAsync();
+    }
+
+    private void RefreshDtsStatus(bool announce)
+    {
+        try
+        {
+            var status = _dtsSpatialAudioService.GetStatus();
+            ApplyDtsStatus(status);
+
+            if (announce)
             {
-                await DisposeClientAsync();
-                var transport = _deviceEnumerator.Open(SelectedDevice.DeviceInfo);
-                _client = new CloudAlphaWirelessClient(transport);
-                ActiveDeviceText = SelectedDevice.DisplayName;
-                StatusMessage = "Connected to HID interface.";
-                await RefreshStatusCoreAsync();
+                StatusMessage = "DTS spatial audio status refreshed.";
+            }
+        }
+        catch (Exception ex)
+        {
+            DtsSummaryText = "Unavailable";
+            DtsDriverText = "--";
+            DtsApoText = "--";
+            DtsServiceText = "--";
+            DtsEndpointText = "--";
+            StatusMessage = ex.Message;
+        }
+    }
+
+    private Task RefreshDtsStatusAsync()
+    {
+        return RunDtsActionAsync(
+            () =>
+            {
+                RefreshDtsStatus(announce: true);
+                return Task.CompletedTask;
             });
     }
 
-    private Task RefreshStatusAsync()
+    private Task ApplyDtsSpatialAudioPreferenceAsync(bool enabled)
     {
-        return RunAsync(RefreshStatusCoreAsync);
+        return RunDtsActionAsync(
+            async () =>
+            {
+                var result = await _dtsSpatialAudioService.SetSpatialAudioEnabledAsync(enabled).ConfigureAwait(true);
+                ApplyDtsStatus(result.Status, result.RestartRequired ? "Restart required" : null);
+                StatusMessage = result.Message;
+
+                if (!result.Success)
+                {
+                    SetDtsSpatialAudioEnabledSilently(!enabled);
+                }
+            });
     }
 
-    private async Task RefreshStatusCoreAsync()
+    private async Task RunDtsActionAsync(Func<Task> action)
     {
-        if (_client is null)
+        if (IsDtsBusy)
         {
-            StatusMessage = "Choose a device and connect first.";
             return;
         }
 
-        var status = await _client.GetStatusAsync();
-        ApplyStatus(status);
-        StatusMessage = status.Connected ? "Status refreshed." : "Dongle is present; headset is not connected.";
-    }
-
-    private void ApplyStatus(CloudAlphaWirelessStatus status)
-    {
-        _applyingDeviceState = true;
         try
         {
-            IsConnected = status.Connected;
-            BatteryText = status.BatteryPercent is null ? "--" : $"{status.BatteryPercent}%";
-            ChargingText = status.ChargingState switch
-            {
-                ChargingState.NotCharging => "No",
-                ChargingState.WiredCharging => "Wired",
-                _ => "--"
-            };
-            PairIdText = status.PairId is null ? "--" : $"0x{status.PairId.Value:X8}";
-            AutoShutdownText = status.AutoShutdownMinutes is null
-                ? "--"
-                : status.AutoShutdownMinutes.Value == 0
-                    ? "Never"
-                    : $"{status.AutoShutdownMinutes} min";
-
-            if (status.MicMuted is not null)
-            {
-                MicMuted = status.MicMuted.Value;
-            }
-
-            if (status.SidetoneEnabled is not null)
-            {
-                SidetoneEnabled = status.SidetoneEnabled.Value;
-            }
-
-            if (status.VoicePromptEnabled is not null)
-            {
-                VoicePromptEnabled = status.VoicePromptEnabled.Value;
-            }
-
-            if (status.AutoShutdownMinutes is not null)
-            {
-                SelectedAutoShutdownOption = AutoShutdownOptions.FirstOrDefault(option => option.Minutes == status.AutoShutdownMinutes.Value);
-            }
+            IsDtsBusy = true;
+            await action().ConfigureAwait(true);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = ex.Message;
         }
         finally
         {
-            _applyingDeviceState = false;
+            IsDtsBusy = false;
         }
     }
 
-    private async Task ApplyToggleAsync(Func<Task> apply, string successMessage)
+    private bool CanRunDtsAction()
     {
-        if (_applyingDeviceState || _client is null || !IsConnected)
-        {
-            return;
-        }
+        return !IsDtsBusy;
+    }
 
-        await RunAsync(
-            async () =>
+    private void ApplyDtsStatus(DtsSpatialAudioStatus status, string? summaryOverride = null)
+    {
+        DtsSummaryText = summaryOverride ?? status.Summary;
+        DtsDriverText = BuildDtsDriverText(status);
+        DtsApoText = BuildDtsApoText(status);
+        DtsServiceText = BuildDtsServiceText(status);
+        DtsEndpointText = BuildDtsEndpointText(status);
+    }
+
+    private void SetDtsSpatialAudioEnabledSilently(bool enabled)
+    {
+        _applyingDtsSpatialAudioSetting = true;
+        try
+        {
+            DtsSpatialAudioEnabled = enabled;
+        }
+        finally
+        {
+            _applyingDtsSpatialAudioSetting = false;
+        }
+    }
+
+    private async Task InitializeAllConnectedDevicesAsync()
+    {
+        foreach (var device in ConnectedDevices)
+        {
+            await device.InitializeAsync();
+        }
+    }
+
+    private void RemoveMissingDevices(IReadOnlyCollection<HidDeviceInfo> discoveredDevices)
+    {
+        foreach (var device in ConnectedDevices.ToArray())
+        {
+            if (discoveredDevices.Any(discovered => SamePath(discovered.Path, device.DevicePath)))
             {
-                await apply();
-                StatusMessage = successMessage;
-            });
+                continue;
+            }
+
+            if (ReferenceEquals(SelectedDevice, device))
+            {
+                SelectedDevice = null;
+            }
+
+            ConnectedDevices.Remove(device);
+            device.Dispose();
+        }
     }
 
     private async Task RunAsync(Func<Task> action)
@@ -336,7 +500,6 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         catch (Exception ex)
         {
             StatusMessage = ex.Message;
-            IsConnected = false;
         }
         finally
         {
@@ -344,19 +507,124 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
         }
     }
 
-    private bool CanRun()
+    private bool CanScan()
     {
         return !IsBusy;
     }
 
-    private bool CanConnect()
+    private bool CanRefreshSelectedStatus()
     {
-        return !IsBusy && SelectedDevice is not null;
+        return !IsBusy && SelectedDevice is not null && !SelectedDevice.IsBusy;
     }
 
-    private bool CanRefreshStatus()
+    private void SelectedDevice_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        return !IsBusy && _client is not null;
+        if (e.PropertyName is nameof(CloudAlphaWirelessDeviceViewModel.IsBusy)
+            or nameof(CloudAlphaWirelessDeviceViewModel.IsConnected))
+        {
+            RefreshStatusCommand.NotifyCanExecuteChanged();
+        }
+    }
+
+    private void UpdateDeviceCollectionProperties()
+    {
+        OnPropertyChanged(nameof(DeviceCountText));
+        OnPropertyChanged(nameof(ActiveDeviceText));
+        RefreshStatusCommand.NotifyCanExecuteChanged();
+    }
+
+    private string BuildScanStatusMessage(int discoveredCount, IReadOnlyCollection<string> failures)
+    {
+        if (failures.Count > 0)
+        {
+            return $"Found {discoveredCount} supported interface(s), but {failures.Count} failed to connect.";
+        }
+
+        return ConnectedDevices.Count switch
+        {
+            0 => "No supported devices found.",
+            1 => "Auto-connected 1 supported device.",
+            _ => $"Auto-connected {ConnectedDevices.Count} supported devices."
+        };
+    }
+
+    private static bool SamePath(string left, string right)
+    {
+        return string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string BuildDtsDriverText(DtsSpatialAudioStatus status)
+    {
+        if (!status.IsSupported)
+        {
+            return "Unavailable";
+        }
+
+        if (status.DetectedDriverPackageCount == 0)
+        {
+            return "Not detected";
+        }
+
+        return $"{status.DetectedDriverPackageCount} of {status.RequiredDriverPackageCount} packages";
+    }
+
+    private static string BuildDtsApoText(DtsSpatialAudioStatus status)
+    {
+        if (!status.IsSupported)
+        {
+            return "Unavailable";
+        }
+
+        return status.ApoComRegistered ? "Registered" : "Not registered";
+    }
+
+    private static string BuildDtsServiceText(DtsSpatialAudioStatus status)
+    {
+        if (!status.IsSupported)
+        {
+            return "Unavailable";
+        }
+
+        if (!status.ServiceRegistered)
+        {
+            return "Not installed";
+        }
+
+        return status.ServiceRunning ? "Running" : "Stopped";
+    }
+
+    private static string BuildDtsEndpointText(DtsSpatialAudioStatus status)
+    {
+        if (!status.IsSupported)
+        {
+            return "Unavailable";
+        }
+
+        if (status.DetectedRenderEndpointCount == 0)
+        {
+            return "None detected";
+        }
+
+        if (status.ConfiguredRenderEndpointCount == 0)
+        {
+            return status.DetectedRenderEndpointCount == 1
+                ? "1 partial endpoint"
+                : $"{status.DetectedRenderEndpointCount} partial endpoints";
+        }
+
+        if (status.ConfiguredRenderEndpointCount == status.DetectedRenderEndpointCount)
+        {
+            return status.ConfiguredRenderEndpointCount == 1
+                ? "1 configured endpoint"
+                : $"{status.ConfiguredRenderEndpointCount} configured endpoints";
+        }
+
+        var partialEndpointCount = status.DetectedRenderEndpointCount - status.ConfiguredRenderEndpointCount;
+        return partialEndpointCount switch
+        {
+            1 => $"{status.ConfiguredRenderEndpointCount} configured, 1 partial",
+            _ => $"{status.ConfiguredRenderEndpointCount} configured, {partialEndpointCount} partial"
+        };
     }
 
     private static void ApplyTheme(bool isDarkMode)
@@ -371,15 +639,15 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             : ThemeVariant.Light;
     }
 
-    private async Task DisposeClientAsync()
+    public void SetCloseBehavior(AppCloseBehavior behavior)
     {
-        if (_client is null)
-        {
-            return;
-        }
+        SelectedCloseBehaviorOption = FindCloseBehaviorOption(behavior);
+    }
 
-        await _client.DisposeAsync();
-        _client = null;
+    private CloseBehaviorOption FindCloseBehaviorOption(AppCloseBehavior behavior)
+    {
+        return CloseBehaviorOptions.FirstOrDefault(option => option.Behavior == behavior)
+            ?? CloseBehaviorOptions[0];
     }
 
     public void Dispose()
@@ -389,7 +657,12 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
             return;
         }
 
-        DisposeClientAsync().GetAwaiter().GetResult();
+        foreach (var device in ConnectedDevices.ToArray())
+        {
+            device.Dispose();
+        }
+
+        ConnectedDevices.Clear();
         _disposed = true;
     }
 }

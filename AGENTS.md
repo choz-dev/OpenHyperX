@@ -43,12 +43,12 @@ Safe by default:
 - Building the solution
 - Running tests
 - Listing HID devices
-- Reading passive status such as battery, charging state, connection state, mute state, sidetone state, voice prompt state, and auto-shutdown setting
+- Reading passive status such as battery, charging state, connection state, mute state, microphone monitoring state, voice prompt state, and auto-shutdown setting
 
 Ask first:
 
 - Changing mic mute
-- Changing sidetone
+- Changing microphone monitoring
 - Changing voice prompts
 - Changing auto-shutdown
 - Sending unknown command IDs
@@ -57,6 +57,28 @@ Ask first:
 - Any command that could alter persistent device state
 
 If a command is experimental, say exactly what bytes will be sent and what behavior is expected before asking for approval.
+
+## Windows Audio And DTS Safety
+
+DTS spatial audio support touches Windows driver, service, registry, and APO state. Treat those operations separately from HID device reads.
+
+Safe by default:
+
+- Reading DTS driver package presence from DriverStore.
+- Reading DTS APO COM registration.
+- Reading `DtsHPXV2Apo4Service` registration/running state.
+- Reading Windows render endpoint registry markers.
+- Read-only APO binding probes that do not call setters or change endpoint config.
+
+Ask first:
+
+- Installing DTS INF packages with `pnputil`.
+- Removing or replacing DTS driver packages.
+- Starting, stopping, or changing startup mode for DTS services.
+- Calling APO setters such as endpoint `SetConfig`, APO enable, spatial enable, EQ, or restore-default operations.
+- Writing Windows audio endpoint registry values.
+
+OpenHyperX must not bundle proprietary DTS, HyperX, HP, or NGenuity driver files. The app may look for a local user-installed or user-provided `AudioDTS` source, but agents should not copy driver binaries from NGenuity or WindowsApps into the repository.
 
 ## Architecture
 
@@ -69,7 +91,7 @@ Prefer this shape:
 - `OpenHyperX.Cli`: safe diagnostics and protocol testing.
 - `OpenHyperX.Core.Tests`: protocol and shared behavior tests.
 
-Device modules should expose friendly capabilities rather than leaking raw packets into the UI. For example, the UI should call a client/capability method such as `SetSidetoneEnabledAsync`, not manually build a HID report.
+Device modules should expose friendly capabilities rather than leaking raw packets into the UI. For example, the UI should call a client/capability method such as `SetMicrophoneMonitoringEnabledAsync`, not manually build a HID report.
 
 ## Device Support
 
@@ -80,7 +102,7 @@ When adding support for another product:
 - Create a dedicated device module or namespace.
 - Document known VID/PID values, report lengths, command IDs, and payload layouts.
 - Keep command IDs in one obvious place.
-- Prefer capability interfaces for shared concepts like battery, lighting, DPI, profiles, audio, sidetone, and firmware info.
+- Prefer capability interfaces for shared concepts like battery, lighting, DPI, profiles, audio, microphone monitoring, and firmware info.
 - Keep device quirks inside the device module.
 - Add tests for packet building, command IDs, parsing, and state interpretation.
 

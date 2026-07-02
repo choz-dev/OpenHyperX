@@ -34,10 +34,12 @@ Console.WriteLine($"    Connected: {status.Connected}");
 Console.WriteLine($"    Battery: {Format(status.BatteryPercent, "%")}");
 Console.WriteLine($"    Charging: {status.ChargingState}");
 Console.WriteLine($"    Mic muted: {Format(status.MicMuted)}");
-Console.WriteLine($"    Sidetone: {Format(status.SidetoneEnabled)}");
+Console.WriteLine($"    Mic boom: {FormatAttached(status.MicrophoneBoomAttached)}");
+Console.WriteLine($"    Microphone monitoring: {Format(status.MicrophoneMonitoringEnabled)}");
 Console.WriteLine($"    Voice prompts: {Format(status.VoicePromptEnabled)}");
 Console.WriteLine($"    Auto shutdown: {Format(status.AutoShutdownMinutes, " minute(s)")}");
 Console.WriteLine($"    Pair ID: {FormatPairId(status.PairId)}");
+Console.WriteLine($"    Product color: {FormatHex(status.ProductColor)}");
 
 static string Format<T>(T? value, string suffix = "")
     where T : struct
@@ -48,4 +50,14 @@ static string Format<T>(T? value, string suffix = "")
 static string FormatPairId(uint? value)
 {
     return value is null ? "--" : $"0x{value.Value:X8}";
+}
+
+static string FormatAttached(bool? value)
+{
+    return value is null ? "--" : value.Value ? "Attached" : "Detached";
+}
+
+static string FormatHex(byte? value)
+{
+    return value is null ? "--" : $"0x{value.Value:X2}";
 }

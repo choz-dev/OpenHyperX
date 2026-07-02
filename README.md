@@ -12,14 +12,21 @@ This project is early and experimental. The app can currently discover and commu
 
 | Device | Status | Current support |
 | --- | --- | --- |
-| Cloud Alpha Wireless | In progress | Connection state, battery, charging state, mic mute, sidetone, voice prompts, auto-shutdown |
+| Cloud Alpha Wireless | In progress | Connection state, battery, charging state, mic mute, mic boom status, microphone monitoring, voice prompts, auto-shutdown, product color code |
 
 ## Features
 
 - Native desktop UI built with Avalonia
 - Light and dark mode
 - HID device discovery through HidSharp
+- Auto-connect scanning for supported devices
+- Multi-device session plumbing for future product modules
+- Auto-saved device preferences
+- Remembered close behavior with system tray support
+- Optional per-user startup registration
+- DTS spatial audio diagnostics and opt-in enable flow
 - Cloud Alpha Wireless status reading
+- Cloud Alpha Wireless automatic status refresh
 - Cloud Alpha Wireless basic setting writes
 - Command queue for device writes
 - CLI tool for safe diagnostics
@@ -30,13 +37,17 @@ This project is early and experimental. The app can currently discover and commu
 The current desktop app includes:
 
 - Device picker
-- Connect and refresh controls
-- Battery and charging status
+- Auto-connect scan and read-status controls
+- Battery, charging, mic boom, and product color status
 - Pair ID display
 - Mic mute toggle
-- Sidetone toggle
+- Microphone monitoring toggle
 - Voice prompt toggle
 - Auto-shutdown selector
+- General settings tab
+- Close-to-tray or full-exit behavior selector
+- Start-with-Windows controls
+- DTS spatial audio driver/APO status and enable toggle
 - Light/dark theme switch
 
 ## Safety
@@ -48,7 +59,7 @@ Safe diagnostic operations include:
 - Listing HID devices
 - Reading connection state
 - Reading battery and charging state
-- Reading mic mute, sidetone, voice prompt, and auto-shutdown state
+- Reading mic mute, mic boom, microphone monitoring, voice prompt, auto-shutdown, and product color state
 
 Be careful with:
 
@@ -60,6 +71,32 @@ Be careful with:
 - Any command that writes persistent state
 
 Do not run experimental write commands against real hardware unless you understand the bytes being sent and the expected behavior.
+
+Saved Cloud Alpha Wireless preferences are stored per user and are applied automatically when a matching headset is connected or reconnects through the dongle. Current saved device preferences include mic mute, microphone monitoring, voice prompts, and auto-shutdown.
+
+DTS spatial audio support can detect the expected DTS driver packages, APO registration, service state, and DTS-marked or fully configured Windows render endpoints. When DTS spatial audio is enabled, OpenHyperX can install the local DTS driver packages through Windows if they are missing, start the DTS service, and activate DTS on detected render endpoints. First-time driver installation requires a PC restart before APO activation can complete. OpenHyperX does not bundle DTS driver files.
+
+## DTS Spatial Audio Flow
+
+DTS support is opt-in from the General settings tab.
+
+When the DTS spatial audio toggle is enabled, OpenHyperX checks for:
+
+- The expected DTS driver packages
+- DTS APO COM registration
+- `DtsHPXV2Apo4Service`
+- A DTS-marked Windows render endpoint
+
+If the DTS driver pieces are missing, OpenHyperX looks for a local `AudioDTS` source. Supported sources are:
+
+- An `AudioDTS` folder beside the OpenHyperX app
+- The installed HyperX NGenuity WindowsApps package
+
+If a source is found, OpenHyperX asks for administrator approval and installs the DTS INF packages through Windows. After a first-time DTS driver install, the PC must be restarted before APO activation can complete.
+
+After the driver is present, OpenHyperX ensures the DTS service is running, binds the DTS render endpoint, and sets the endpoint to DSP mode. APO/spatial mode flags are applied best-effort because Windows and the DTS controller may expose them differently across systems.
+
+OpenHyperX does not bundle DTS driver files, and it does not uninstall DTS drivers when the toggle is disabled.
 
 ## Clean-Room Policy
 
@@ -163,11 +200,13 @@ Known command groups currently implemented:
 - Battery info
 - Charge status
 - Mic mute
-- Sidetone status
+- Mic boom status
+- Microphone monitoring status
 - Voice prompt status
 - Auto-shutdown
+- Product color code
 
-The command map was derived from reverse-engineered behavior notes in `headset.alpha_wireless_clasess.md`.
+The command map was derived from reverse-engineered behavior notes in `headset.alpha_wireless_classes.md`.
 
 ## Adding Device Support
 
@@ -182,7 +221,7 @@ When adding a new product:
 5. Expose friendly capabilities to the app rather than raw packets.
 6. Add tests for packet creation, parsing, and state interpretation.
 
-Shared concepts such as battery, lighting, profiles, DPI, audio, sidetone, and firmware information should eventually become reusable capability interfaces in `OpenHyperX.Core`.
+Shared concepts such as battery, lighting, profiles, DPI, audio, microphone monitoring, and firmware information should eventually become reusable capability interfaces in `OpenHyperX.Core`.
 
 ## Command Queue
 

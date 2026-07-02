@@ -2,6 +2,7 @@ namespace OpenHyperX.Devices.CloudAlphaWireless;
 
 public static class CloudAlphaWirelessCommandIds
 {
+    // The device protocol names this capability sidetone; the app exposes it as microphone monitoring.
     public const byte GetWirelessState = 0x03;
     public const byte GetPairingInfoHeadset = 0x04;
     public const byte GetSidetoneStatus = 0x05;

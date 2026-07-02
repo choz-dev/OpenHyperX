@@ -5,11 +5,13 @@ public sealed record CloudAlphaWirelessStatus(
     int? BatteryPercent,
     ChargingState ChargingState,
     bool? MicMuted,
-    bool? SidetoneEnabled,
+    bool? MicrophoneMonitoringEnabled,
     bool? VoicePromptEnabled,
     byte? AutoShutdownMinutes,
-    uint? PairId)
+    uint? PairId,
+    bool? MicrophoneBoomAttached,
+    byte? ProductColor)
 {
     public static CloudAlphaWirelessStatus Empty { get; } =
-        new(false, null, ChargingState.Unknown, null, null, null, null, null);
+        new(false, null, ChargingState.Unknown, null, null, null, null, null, null, null);
 }

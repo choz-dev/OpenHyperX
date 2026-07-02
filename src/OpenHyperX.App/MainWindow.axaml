@@ -10,9 +10,17 @@
   <Grid RowDefinitions="Auto,*">
     <Border Grid.Row="0" Classes="topbar">
       <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
-        <StackPanel Spacing="2">
-          <TextBlock Text="OpenHyperX" Classes="app-title" />
-          <TextBlock Text="{Binding ActiveDeviceText}" Classes="muted" />
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <Border Classes="logo-mark">
+            <Image Source="avares://OpenHyperX.App/Assets/OpenHyperXLogo.png"
+                   Width="42"
+                   Height="42"
+                   Stretch="UniformToFill" />
+          </Border>
+          <StackPanel Spacing="2" VerticalAlignment="Center">
+            <TextBlock Text="OpenHyperX" Classes="app-title" />
+            <TextBlock Text="{Binding StatusMessage}" Classes="muted" />
+          </StackPanel>
         </StackPanel>
 
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -21,127 +29,213 @@
                         OffContent="Light"
                         VerticalAlignment="Center" />
           <Border Classes="badge">
-            <TextBlock Text="{Binding ConnectionText}" />
+            <TextBlock Text="{Binding DeviceCountText}" />
           </Border>
-          <Button Content="Refresh" Command="{Binding RefreshDevicesCommand}" />
+          <Button Content="Scan" Command="{Binding RefreshDevicesCommand}" />
         </StackPanel>
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1"
-          Margin="24"
-          RowDefinitions="Auto,*"
-          ColumnDefinitions="320,*"
-          ColumnSpacing="20"
-          RowSpacing="20">
-      <Border Grid.ColumnSpan="2" Classes="panel">
-        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
-          <ComboBox ItemsSource="{Binding Devices}"
-                    SelectedItem="{Binding SelectedDevice}"
-                    MinHeight="38"
-                    HorizontalAlignment="Stretch"
-                    PlaceholderText="Cloud Alpha Wireless">
-            <ComboBox.ItemTemplate>
-              <DataTemplate>
-                <StackPanel Spacing="2">
-                  <TextBlock Text="{Binding DisplayName}" />
-                  <TextBlock Text="{Binding DetailText}" Classes="muted-small" />
-                </StackPanel>
-              </DataTemplate>
-            </ComboBox.ItemTemplate>
-          </ComboBox>
-
-          <Button Grid.Column="1"
-                  Classes="primary"
-                  Content="Connect"
-                  Command="{Binding ConnectCommand}" />
-          <Button Grid.Column="2"
-                  Content="Read Status"
-                  Command="{Binding RefreshStatusCommand}" />
-        </Grid>
-      </Border>
-
-      <Border Grid.Row="1" Grid.Column="0" Classes="panel">
-        <StackPanel Spacing="18">
-          <StackPanel Spacing="3">
-            <TextBlock Text="Device" Classes="section-title" />
-            <TextBlock Text="{Binding StatusMessage}" Classes="muted" TextWrapping="Wrap" />
-          </StackPanel>
-
-          <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="12">
-            <TextBlock Text="Battery" Classes="label" />
-            <TextBlock Grid.Column="1" Text="{Binding BatteryText}" Classes="metric" />
-
-            <TextBlock Grid.Row="1" Text="Charging" Classes="label" />
-            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding ChargingText}" Classes="metric" />
-
-            <TextBlock Grid.Row="2" Text="Pair ID" Classes="label" />
-            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding PairIdText}" Classes="metric" />
-
-            <TextBlock Grid.Row="3" Text="Auto shutdown" Classes="label" />
-            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding AutoShutdownText}" Classes="metric" />
-          </Grid>
-
-          <ProgressBar IsIndeterminate="True"
-                       IsVisible="{Binding IsBusy}"
-                       Height="4" />
-        </StackPanel>
-      </Border>
-
-      <Border Grid.Row="1" Grid.Column="1" Classes="panel">
-        <Grid RowDefinitions="Auto,Auto,*" RowSpacing="22">
-          <TextBlock Text="Cloud Alpha Wireless" Classes="section-title" />
-
-          <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="18">
-            <StackPanel Classes="setting" Spacing="8">
-              <TextBlock Text="Microphone" Classes="label" />
-              <ToggleSwitch IsChecked="{Binding MicMuted}"
-                            IsEnabled="{Binding IsConnected}"
-                            OnContent="Muted"
-                            OffContent="Live" />
-            </StackPanel>
-
-            <StackPanel Grid.Column="1" Classes="setting" Spacing="8">
-              <TextBlock Text="Sidetone" Classes="label" />
-              <ToggleSwitch IsChecked="{Binding SidetoneEnabled}"
-                            IsEnabled="{Binding IsConnected}"
-                            OnContent="On"
-                            OffContent="Off" />
-            </StackPanel>
-
-            <StackPanel Grid.Column="2" Classes="setting" Spacing="8">
-              <TextBlock Text="Voice prompts" Classes="label" />
-              <ToggleSwitch IsChecked="{Binding VoicePromptEnabled}"
-                            IsEnabled="{Binding IsConnected}"
-                            OnContent="On"
-                            OffContent="Off" />
-            </StackPanel>
-          </Grid>
-
-          <Grid Grid.Row="2" ColumnDefinitions="260,*" ColumnSpacing="18">
-            <StackPanel Spacing="8">
-              <TextBlock Text="Auto shutdown" Classes="label" />
-              <ComboBox ItemsSource="{Binding AutoShutdownOptions}"
-                        SelectedItem="{Binding SelectedAutoShutdownOption}"
-                        IsEnabled="{Binding IsConnected}"
-                        MinHeight="38">
+    <TabControl Grid.Row="1" Margin="24">
+      <TabItem Header="Device">
+        <Grid RowDefinitions="Auto,*"
+              ColumnDefinitions="320,*"
+              ColumnSpacing="20"
+              RowSpacing="20"
+              Margin="0,14,0,0">
+          <Border Grid.ColumnSpan="2" Classes="panel">
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+              <ComboBox ItemsSource="{Binding ConnectedDevices}"
+                        SelectedItem="{Binding SelectedDevice}"
+                        MinHeight="38"
+                        HorizontalAlignment="Stretch"
+                        PlaceholderText="Supported devices connect automatically">
                 <ComboBox.ItemTemplate>
                   <DataTemplate>
-                    <TextBlock Text="{Binding Label}" />
+                    <StackPanel Spacing="2">
+                      <TextBlock Text="{Binding DisplayName}" />
+                      <TextBlock Text="{Binding DetailText}" Classes="muted-small" />
+                    </StackPanel>
                   </DataTemplate>
                 </ComboBox.ItemTemplate>
               </ComboBox>
-            </StackPanel>
 
-            <Border Grid.Column="1" Classes="protocol-box">
-              <StackPanel Spacing="8">
-                <TextBlock Text="Protocol" Classes="label" />
-                <TextBlock Text="{Binding ProtocolSummary}" TextWrapping="Wrap" Classes="muted" />
+              <Button Grid.Column="1"
+                      Classes="primary"
+                      Content="Read Status"
+                      Command="{Binding RefreshStatusCommand}" />
+            </Grid>
+          </Border>
+
+          <Border Grid.Row="1" Grid.Column="0" Classes="panel">
+            <StackPanel Spacing="18">
+              <StackPanel Spacing="3">
+                <TextBlock Text="Device" Classes="section-title" />
+                <TextBlock Text="{Binding ActiveDeviceText}" Classes="metric" />
+                <TextBlock Text="{Binding SelectedDevice.StatusMessage}" Classes="muted" TextWrapping="Wrap" />
               </StackPanel>
-            </Border>
-          </Grid>
+
+              <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="12">
+                <TextBlock Text="Battery" Classes="label" />
+                <TextBlock Grid.Column="1" Text="{Binding SelectedDevice.BatteryText}" Classes="metric" />
+
+                <TextBlock Grid.Row="1" Text="Charging" Classes="label" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedDevice.ChargingText}" Classes="metric" />
+
+                <TextBlock Grid.Row="2" Text="Pair ID" Classes="label" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedDevice.PairIdText}" Classes="metric" />
+
+                <TextBlock Grid.Row="3" Text="Auto shutdown" Classes="label" />
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedDevice.AutoShutdownText}" Classes="metric" />
+
+                <TextBlock Grid.Row="4" Text="Mic boom" Classes="label" />
+                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedDevice.MicrophoneBoomText}" Classes="metric" />
+
+                <TextBlock Grid.Row="5" Text="Product color" Classes="label" />
+                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedDevice.ProductColorText}" Classes="metric" />
+              </Grid>
+
+              <ProgressBar IsIndeterminate="True"
+                           IsVisible="{Binding SelectedDevice.IsBusy}"
+                           Height="4" />
+            </StackPanel>
+          </Border>
+
+          <Border Grid.Row="1" Grid.Column="1" Classes="panel">
+            <Grid RowDefinitions="Auto,Auto,*" RowSpacing="22">
+              <TextBlock Text="{Binding SelectedDevice.DeviceType}" Classes="section-title" />
+
+              <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="18">
+                <StackPanel Classes="setting" Spacing="8">
+                  <TextBlock Text="Microphone" Classes="label" />
+                  <ToggleSwitch IsChecked="{Binding SelectedDevice.MicMuted}"
+                                IsEnabled="{Binding SelectedDevice.ControlsEnabled}"
+                                OnContent="Muted"
+                                OffContent="Live" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Classes="setting" Spacing="8">
+                  <TextBlock Text="Microphone monitoring" Classes="label" />
+                  <ToggleSwitch IsChecked="{Binding SelectedDevice.MicrophoneMonitoringEnabled}"
+                                IsEnabled="{Binding SelectedDevice.ControlsEnabled}"
+                                OnContent="On"
+                                OffContent="Off" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Classes="setting" Spacing="8">
+                  <TextBlock Text="Voice prompts" Classes="label" />
+                  <ToggleSwitch IsChecked="{Binding SelectedDevice.VoicePromptEnabled}"
+                                IsEnabled="{Binding SelectedDevice.ControlsEnabled}"
+                                OnContent="On"
+                                OffContent="Off" />
+                </StackPanel>
+              </Grid>
+
+              <Grid Grid.Row="2" ColumnDefinitions="260,*" ColumnSpacing="18">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="Auto shutdown" Classes="label" />
+                  <ComboBox ItemsSource="{Binding AutoShutdownOptions}"
+                            SelectedItem="{Binding SelectedDevice.SelectedAutoShutdownOption}"
+                            IsEnabled="{Binding SelectedDevice.ControlsEnabled}"
+                            MinHeight="38">
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate>
+                        <TextBlock Text="{Binding Label}" />
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                  </ComboBox>
+                </StackPanel>
+
+                <Border Grid.Column="1" Classes="protocol-box">
+                  <StackPanel Spacing="8">
+                    <TextBlock Text="Protocol" Classes="label" />
+                    <TextBlock Text="{Binding ProtocolSummary}" TextWrapping="Wrap" Classes="muted" />
+                  </StackPanel>
+                </Border>
+              </Grid>
+            </Grid>
+          </Border>
         </Grid>
-      </Border>
-    </Grid>
+      </TabItem>
+
+      <TabItem Header="General">
+        <Grid ColumnDefinitions="420,*"
+              ColumnSpacing="20"
+              Margin="0,14,0,0">
+          <Border Classes="panel">
+            <StackPanel Spacing="18">
+              <TextBlock Text="General" Classes="section-title" />
+
+              <StackPanel Spacing="8">
+                <TextBlock Text="Window close" Classes="label" />
+                <ComboBox ItemsSource="{Binding CloseBehaviorOptions}"
+                          SelectedItem="{Binding SelectedCloseBehaviorOption}"
+                          MinHeight="38">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding Label}" />
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+
+              <StackPanel Spacing="8">
+                <TextBlock Text="Startup" Classes="label" />
+                <CheckBox Content="Start OpenHyperX when I sign in"
+                          IsChecked="{Binding StartWithWindows}"
+                          IsEnabled="{Binding IsStartupRegistrationSupported}" />
+                <CheckBox Content="Start hidden in system tray"
+                          IsChecked="{Binding StartInTrayOnStartup}"
+                          IsEnabled="{Binding CanStartInTrayOnStartup}" />
+              </StackPanel>
+
+              <StackPanel Spacing="8">
+                <TextBlock Text="Theme" Classes="label" />
+                <ToggleSwitch IsChecked="{Binding IsDarkMode}"
+                              OnContent="Dark"
+                              OffContent="Light" />
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Grid.Column="1" Classes="panel">
+            <StackPanel Spacing="18">
+              <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                <StackPanel Spacing="3">
+                  <TextBlock Text="DTS spatial audio" Classes="section-title" />
+                  <TextBlock Text="{Binding DtsSummaryText}" Classes="muted" />
+                </StackPanel>
+
+                <ToggleSwitch Grid.Column="1"
+                              IsChecked="{Binding DtsSpatialAudioEnabled}"
+                              IsEnabled="{Binding DtsControlsEnabled}"
+                              OnContent="On"
+                              OffContent="Off"
+                              VerticalAlignment="Center" />
+
+                <Button Grid.Column="2"
+                        Content="Refresh"
+                        IsEnabled="{Binding DtsControlsEnabled}"
+                        Command="{Binding RefreshDtsStatusCommand}" />
+              </Grid>
+
+              <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="180,*" RowSpacing="12" ColumnSpacing="18">
+                <TextBlock Text="Driver packages" Classes="label" />
+                <TextBlock Grid.Column="1" Text="{Binding DtsDriverText}" Classes="metric" />
+
+                <TextBlock Grid.Row="1" Text="APO registration" Classes="label" />
+                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DtsApoText}" Classes="metric" />
+
+                <TextBlock Grid.Row="2" Text="Service" Classes="label" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DtsServiceText}" Classes="metric" />
+
+                <TextBlock Grid.Row="3" Text="Render endpoints" Classes="label" />
+                <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding DtsEndpointText}" Classes="metric" />
+              </Grid>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </TabItem>
+    </TabControl>
   </Grid>
 </Window>

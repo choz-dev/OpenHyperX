@@ -48,6 +48,20 @@
     <Setter Property="BorderBrush" Value="#2E7568" />
   </Style>
 
+  <Style Selector="Border.logo-mark">
+    <Setter Property="Width" Value="42" />
+    <Setter Property="Height" Value="42" />
+    <Setter Property="Background" Value="#050709" />
+    <Setter Property="BorderBrush" Value="#D8DEE8" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+
+  <Style Selector="Window.dark Border.logo-mark">
+    <Setter Property="BorderBrush" Value="#2D3A48" />
+  </Style>
+
   <Style Selector="Border.protocol-box">
     <Setter Property="Background" Value="#F7F4EA" />
     <Setter Property="BorderBrush" Value="#E1D3A5" />

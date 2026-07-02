@@ -38,19 +38,23 @@ public sealed class CloudAlphaWirelessClient : IDisposable, IAsyncDisposable
 
         var battery = await GetBatteryPercentAsync(cancellationToken).ConfigureAwait(false);
         var charging = await GetChargingStateAsync(cancellationToken).ConfigureAwait(false);
-        var sidetone = await GetSidetoneEnabledAsync(cancellationToken).ConfigureAwait(false);
+        var microphoneMonitoring = await GetMicrophoneMonitoringEnabledAsync(cancellationToken).ConfigureAwait(false);
         var micMuted = await GetMicMutedAsync(cancellationToken).ConfigureAwait(false);
         var voicePrompt = await GetVoicePromptEnabledAsync(cancellationToken).ConfigureAwait(false);
+        var microphoneBoomAttached = await GetMicrophoneBoomAttachedAsync(cancellationToken).ConfigureAwait(false);
+        var productColor = await GetProductColorAsync(cancellationToken).ConfigureAwait(false);
 
         return new CloudAlphaWirelessStatus(
             connected,
             battery,
             charging,
             micMuted,
-            sidetone,
+            microphoneMonitoring,
             voicePrompt,
             autoShutdown,
-            pairId);
+            pairId,
+            microphoneBoomAttached,
+            productColor);
     }
 
     public async Task<bool?> GetWirelessStateAsync(CancellationToken cancellationToken = default)
@@ -120,12 +124,25 @@ public sealed class CloudAlphaWirelessClient : IDisposable, IAsyncDisposable
         return payload is { Length: > 0 } ? payload[0] == 0x01 : null;
     }
 
-    public async Task<bool?> GetSidetoneEnabledAsync(CancellationToken cancellationToken = default)
+    public async Task<bool?> GetMicrophoneBoomAttachedAsync(CancellationToken cancellationToken = default)
+    {
+        var payload = await QueryPayloadAsync(CloudAlphaWirelessCommandIds.GetMicBoomStatus, cancellationToken)
+            .ConfigureAwait(false);
+
+        return payload is { Length: > 0 } ? payload[0] == 0x01 : null;
+    }
+
+    public async Task<bool?> GetMicrophoneMonitoringEnabledAsync(CancellationToken cancellationToken = default)
     {
         var payload = await QueryPayloadAsync(CloudAlphaWirelessCommandIds.GetSidetoneStatus, cancellationToken)
             .ConfigureAwait(false);
 
         return payload is { Length: > 0 } ? payload[0] == 0x01 : null;
+    }
+
+    public Task<bool?> GetSidetoneEnabledAsync(CancellationToken cancellationToken = default)
+    {
+        return GetMicrophoneMonitoringEnabledAsync(cancellationToken);
     }
 
     public async Task<bool?> GetVoicePromptEnabledAsync(CancellationToken cancellationToken = default)
@@ -134,6 +151,14 @@ public sealed class CloudAlphaWirelessClient : IDisposable, IAsyncDisposable
             .ConfigureAwait(false);
 
         return payload is { Length: > 0 } ? payload[0] == 0x01 : null;
+    }
+
+    public async Task<byte?> GetProductColorAsync(CancellationToken cancellationToken = default)
+    {
+        var payload = await QueryPayloadAsync(CloudAlphaWirelessCommandIds.GetProductColor, cancellationToken)
+            .ConfigureAwait(false);
+
+        return payload is { Length: > 0 } ? payload[0] : null;
     }
 
     public Task SetAutoShutdownAsync(byte minutes, CancellationToken cancellationToken = default)
@@ -146,9 +171,14 @@ public sealed class CloudAlphaWirelessClient : IDisposable, IAsyncDisposable
         return EnqueueCommandAsync(new SetMicMuteCommand(muted), cancellationToken);
     }
 
-    public Task SetSidetoneEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
+    public Task SetMicrophoneMonitoringEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
     {
         return EnqueueCommandAsync(new SetSidetoneStatusCommand(enabled), cancellationToken);
+    }
+
+    public Task SetSidetoneEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
+    {
+        return SetMicrophoneMonitoringEnabledAsync(enabled, cancellationToken);
     }
 
     public Task SetVoicePromptEnabledAsync(bool enabled, CancellationToken cancellationToken = default)
