@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     private IConnectedDeviceViewModel? _trayObservedDevice;
     private bool _allowClose;
     private bool _handlingClose;
+    private bool _startHiddenApplied;
 
     public bool StartHidden { get; init; }
 
@@ -76,8 +77,9 @@ public partial class MainWindow : Window
     {
         base.OnOpened(e);
 
-        if (StartHidden)
+        if (StartHidden && !_startHiddenApplied)
         {
+            _startHiddenApplied = true;
             HideToTray();
         }
 
