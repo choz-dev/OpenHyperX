@@ -45,7 +45,7 @@ public sealed class HidSharpTransport : IHyperXTransport
                     }
                     catch (IOException) when (OperatingSystem.IsWindows())
                     {
-                        WindowsHidOutputReportWriter.Write(DeviceInfo.Path, report);
+                        WindowsHidOutputReportWriter.Write(DeviceInfo.Path, report, OutputReportLength);
                     }
                 }
             },
