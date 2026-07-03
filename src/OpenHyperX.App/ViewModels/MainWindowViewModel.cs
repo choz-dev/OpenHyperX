@@ -538,9 +538,10 @@ public sealed class MainWindowViewModel : ObservableObject, IDisposable
                 .ListDevices(CloudAlphaWirelessDeviceIds.Filter)
                 .Where(CloudAlphaWirelessDeviceIds.IsLikelyCommandInterface));
         devices.AddRange(
-            _deviceEnumerator
-                .ListDevices(QuadCastDeviceIds.Filter)
-                .Where(QuadCastDeviceIds.IsLikelyCommandInterface));
+            QuadCastDeviceIds.SelectPreferredCommandInterfaces(
+                _deviceEnumerator
+                    .ListDevices(QuadCastDeviceIds.Filter)
+                    .Where(QuadCastDeviceIds.IsLikelyCommandInterface)));
 
         return devices
             .GroupBy(device => device.Path, StringComparer.OrdinalIgnoreCase)

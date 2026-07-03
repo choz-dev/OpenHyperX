@@ -36,6 +36,19 @@ public static class QuadCastProtocol
         return true;
     }
 
+    public static bool TryGetReportCommand(ReadOnlySpan<byte> report, out byte command)
+    {
+        var offset = FindReportMarker(report);
+        if (offset < 0 || report.Length <= offset + 1)
+        {
+            command = 0;
+            return false;
+        }
+
+        command = report[offset + 1];
+        return true;
+    }
+
     public static bool TryParseReportPolarPattern(
         QuadCastModel model,
         byte raw,
@@ -146,17 +159,27 @@ public static class QuadCastProtocol
 
     private static byte[] CreateReport(byte command, byte? value, int reportLength)
     {
-        var length = Math.Max(reportLength <= 0 ? 64 : reportLength, value is null ? 2 : 3);
+        var includeReportId = ShouldIncludeReportId(reportLength);
+        var minimumLength = includeReportId
+            ? (value is null ? 3 : 4)
+            : (value is null ? 2 : 3);
+        var length = Math.Max(reportLength <= 0 ? 64 : reportLength, minimumLength);
         var report = new byte[length];
-        report[0] = QuadCastCommandIds.ReportMarker;
-        report[1] = command;
+        var offset = includeReportId ? 1 : 0;
+        report[offset] = QuadCastCommandIds.ReportMarker;
+        report[offset + 1] = command;
 
         if (value is { } payload)
         {
-            report[2] = payload;
+            report[offset + 2] = payload;
         }
 
         return report;
+    }
+
+    private static bool ShouldIncludeReportId(int reportLength)
+    {
+        return reportLength > 64;
     }
 
     private static int FindReportMarker(ReadOnlySpan<byte> report)

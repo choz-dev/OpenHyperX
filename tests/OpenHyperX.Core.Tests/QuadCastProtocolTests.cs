@@ -26,6 +26,63 @@ public sealed class QuadCastProtocolTests
     }
 
     [Fact]
+    public void ReportRequestUsesLeadingReportIdFor65ByteHidReports()
+    {
+        var report = QuadCastProtocol.CreateReportRequest(QuadCastCommandIds.GetPolarPattern, 65);
+
+        Assert.Equal(65, report.Length);
+        Assert.Equal(0x00, report[0]);
+        Assert.Equal(0x77, report[1]);
+        Assert.Equal(0x85, report[2]);
+    }
+
+    [Fact]
+    public void ReportValueParserAcceptsLeadingReportId()
+    {
+        var report = QuadCastProtocol.CreateValueReport(QuadCastCommandIds.GetMicrophoneMute, 0x01, 65);
+
+        Assert.True(QuadCastProtocol.TryGetReportValue(report, QuadCastCommandIds.GetMicrophoneMute, out var value));
+        Assert.Equal(0x01, value);
+    }
+
+    [Fact]
+    public void QuadCast2SCommandInterfaceFilterRejectsPrimaryCollection()
+    {
+        var primary = CreateQuadCast2SDevice(@"\\?\hid#vid_03f0&pid_02b5&mi_00#primary#{guid}", 0x02B5);
+        var secondary = CreateQuadCast2SDevice(@"\\?\hid#vid_03f0&pid_02b5&mi_01&col02#secondary#{guid}", 0x02B5);
+        var codec = CreateQuadCast2SDevice(@"\\?\hid#vid_03f0&pid_03b5#codec#{guid}", 0x03B5);
+
+        Assert.False(QuadCastDeviceIds.IsLikelyCommandInterface(primary));
+        Assert.True(QuadCastDeviceIds.IsLikelyCommandInterface(secondary));
+        Assert.True(QuadCastDeviceIds.IsLikelyCommandInterface(codec));
+    }
+
+    [Fact]
+    public void QuadCast2SCommandInterfaceSelectionPrefersSecondaryCollection()
+    {
+        var secondary = CreateQuadCast2SDevice(@"\\?\hid#vid_03f0&pid_02b5&mi_01&col02#secondary#{guid}", 0x02B5);
+        var codec = CreateQuadCast2SDevice(@"\\?\hid#vid_03f0&pid_03b5#codec#{guid}", 0x03B5);
+
+        var selected = QuadCastDeviceIds.SelectPreferredCommandInterfaces([codec, secondary]);
+
+        var device = Assert.Single(selected);
+        Assert.Equal(secondary.Path, device.Path);
+    }
+
+    [Fact]
+    public void QuadCast2SCommandInterfaceSelectionKeepsFallbackOnlyDevices()
+    {
+        var firstCodec = CreateQuadCast2SDevice(@"\\?\hid#vid_03f0&pid_03b5#codec-a#{guid}", 0x03B5);
+        var secondCodec = CreateQuadCast2SDevice(@"\\?\hid#vid_03f0&pid_03b5#codec-b#{guid}", 0x03B5);
+
+        var selected = QuadCastDeviceIds.SelectPreferredCommandInterfaces([firstCodec, secondCodec]);
+
+        Assert.Equal(2, selected.Count);
+        Assert.Contains(selected, device => device.Path == firstCodec.Path);
+        Assert.Contains(selected, device => device.Path == secondCodec.Path);
+    }
+
+    [Fact]
     public void QuadCast2PolarPatternMappingMatchesProtocol()
     {
         Assert.True(QuadCastProtocol.TryParseReportPolarPattern(QuadCastModel.QuadCast2, 0x00, out var cardioid));
@@ -57,6 +114,7 @@ public sealed class QuadCastProtocolTests
         await using var client = new QuadCastClient(
             new FakeQuadCastTransport(
                 QuadCastDeviceIds.ProductIdQuadCast2SCommand,
+                outputReportLength: 65,
                 new Dictionary<byte, byte>
                 {
                     [QuadCastCommandIds.GetPolarPattern] = 0x01,
@@ -102,35 +160,56 @@ public sealed class QuadCastProtocolTests
         Assert.True(reverseLights);
     }
 
+    private static HidDeviceInfo CreateQuadCast2SDevice(string path, int productId)
+    {
+        return new HidDeviceInfo(
+            path,
+            QuadCastDeviceIds.HyperXVendorId,
+            productId,
+            "HyperX QuadCast 2 S",
+            65,
+            65,
+            0);
+    }
+
     private sealed class FakeQuadCastTransport : IHyperXTransport
     {
         private readonly IReadOnlyDictionary<byte, byte> _responses;
+        private readonly int _outputReportLength;
         private byte _lastCommand;
 
-        public FakeQuadCastTransport(int productId, IReadOnlyDictionary<byte, byte> responses)
+        public FakeQuadCastTransport(
+            int productId,
+            int outputReportLength,
+            IReadOnlyDictionary<byte, byte> responses)
         {
             _responses = responses;
+            _outputReportLength = outputReportLength;
             DeviceInfo = new HidDeviceInfo(
                 "fake",
                 QuadCastDeviceIds.HyperXVendorId,
                 productId,
                 "Fake QuadCast",
-                64,
-                64,
+                65,
+                outputReportLength,
                 264);
         }
 
         public HidDeviceInfo DeviceInfo { get; }
 
-        public int InputReportLength => 64;
+        public int InputReportLength => 65;
 
-        public int OutputReportLength => 64;
+        public int OutputReportLength => _outputReportLength;
 
         public int FeatureReportLength => 264;
 
         public Task WriteAsync(byte[] report, CancellationToken cancellationToken = default)
         {
-            _lastCommand = report[1];
+            if (!QuadCastProtocol.TryGetReportCommand(report, out _lastCommand))
+            {
+                throw new InvalidOperationException("Report did not contain a QuadCast command marker.");
+            }
+
             return Task.CompletedTask;
         }
 

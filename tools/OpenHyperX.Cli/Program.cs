@@ -6,6 +6,12 @@ using OpenHyperX.Hid;
 var enumerator = new HidSharpDeviceEnumerator();
 var devices = DiscoverSupportedDevices(enumerator);
 
+if (args.Contains("--quadcast-probe", StringComparer.OrdinalIgnoreCase))
+{
+    await RunQuadCastProbeAsync(enumerator);
+    return;
+}
+
 Console.WriteLine($"Found {devices.Length} supported HID interface(s).");
 Console.WriteLine();
 
@@ -68,9 +74,10 @@ static DetectedDevice[] DiscoverSupportedDevices(HidSharpDeviceEnumerator enumer
             .Where(CloudAlphaWirelessDeviceIds.IsLikelyCommandInterface)
             .Select(device => new DetectedDevice(device, DeviceKind.CloudAlphaWireless)));
     devices.AddRange(
-        enumerator
-            .ListDevices(QuadCastDeviceIds.Filter)
-            .Where(QuadCastDeviceIds.IsLikelyCommandInterface)
+        QuadCastDeviceIds.SelectPreferredCommandInterfaces(
+                enumerator
+                    .ListDevices(QuadCastDeviceIds.Filter)
+                    .Where(QuadCastDeviceIds.IsLikelyCommandInterface))
             .Select(device => new DetectedDevice(device, DeviceKind.QuadCast)));
 
     return devices
@@ -79,6 +86,142 @@ static DetectedDevice[] DiscoverSupportedDevices(HidSharpDeviceEnumerator enumer
         .OrderBy(device => device.Kind)
         .ThenBy(device => device.Info.DisplayName, StringComparer.OrdinalIgnoreCase)
         .ToArray();
+}
+
+static async Task RunQuadCastProbeAsync(HidSharpDeviceEnumerator enumerator)
+{
+    var allDevices = enumerator.ListDevices(QuadCastDeviceIds.Filter).ToArray();
+    var commandDevices = allDevices
+        .Where(QuadCastDeviceIds.IsLikelyCommandInterface)
+        .ToArray();
+    var selectedDevices = QuadCastDeviceIds
+        .SelectPreferredCommandInterfaces(commandDevices)
+        .Select(device => device.Path)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    Console.WriteLine($"Found {allDevices.Length} raw QuadCast HID interface(s).");
+    Console.WriteLine($"Found {commandDevices.Length} likely command interface(s).");
+    Console.WriteLine();
+
+    foreach (var device in allDevices.OrderBy(device => device.ProductId).ThenBy(device => device.Path, StringComparer.OrdinalIgnoreCase))
+    {
+        var known = QuadCastDeviceIds.TryGetModel(device, out var model);
+        var likelyCommand = QuadCastDeviceIds.IsLikelyCommandInterface(device);
+        var selected = selectedDevices.Contains(device.Path);
+
+        Console.WriteLine($"{FormatModel(model)} interface");
+        Console.WriteLine($"    Name: {device.DisplayName}");
+        Console.WriteLine($"    VID/PID: {device.VendorIdHex}:{device.ProductIdHex}");
+        Console.WriteLine($"    Reports: input {device.InputReportLength}, output {device.OutputReportLength}, feature {device.FeatureReportLength}");
+        Console.WriteLine($"    Known model: {known}");
+        Console.WriteLine($"    Likely command interface: {likelyCommand}");
+        Console.WriteLine($"    Selected by app: {selected}");
+        Console.WriteLine($"    Path: {device.Path}");
+
+        if (!likelyCommand)
+        {
+            Console.WriteLine();
+            continue;
+        }
+
+        if (QuadCastDeviceIds.UsesFeatureReports(device))
+        {
+            await ProbeQuadCastFeatureStatusAsync(enumerator, device);
+        }
+        else
+        {
+            await ProbeQuadCastReportStatusAsync(enumerator, device);
+        }
+
+        Console.WriteLine();
+    }
+}
+
+static async Task ProbeQuadCastFeatureStatusAsync(HidSharpDeviceEnumerator enumerator, HidDeviceInfo device)
+{
+    Console.WriteLine("    Feature status probe:");
+
+    try
+    {
+        using var client = new QuadCastClient(enumerator.Open(device));
+        var status = await client.GetStatusAsync();
+        Console.WriteLine($"        OK: mute {Format(status.Muted)}, pattern {FormatPattern(status.PolarPattern)}, brightness {Format(status.BrightnessPercent, "%")}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"        FAILED: {ex.GetType().Name}: {ex.Message}");
+    }
+}
+
+static async Task ProbeQuadCastReportStatusAsync(HidSharpDeviceEnumerator enumerator, HidDeviceInfo device)
+{
+    Console.WriteLine("    Report status probes using read-only GetMicrophoneMute (0x86):");
+
+    var variants = CreateReportProbeVariants(QuadCastCommandIds.GetMicrophoneMute, device.OutputReportLength);
+    foreach (var variant in variants)
+    {
+        Console.WriteLine($"        {variant.Name}: write {variant.Report.Length} byte(s), bytes {FormatBytes(variant.Report, 8)}");
+
+        try
+        {
+            using var transport = enumerator.Open(device);
+            await transport.WriteAsync(variant.Report);
+
+            var response = await transport.ReadAsync(TimeSpan.FromMilliseconds(750));
+            if (response is null)
+            {
+                Console.WriteLine("            write OK, no response before timeout");
+                continue;
+            }
+
+            Console.WriteLine($"            response {response.Length} byte(s): {FormatBytes(response, 16)}");
+            if (QuadCastProtocol.TryGetReportValue(response, QuadCastCommandIds.GetMicrophoneMute, out var value))
+            {
+                Console.WriteLine($"            parsed mute value: 0x{value:X2} ({(value == 0x01 ? "muted" : "live")})");
+            }
+            else if (QuadCastProtocol.TryGetReportCommand(response, out var command))
+            {
+                Console.WriteLine($"            parsed different command: 0x{command:X2}");
+            }
+            else
+            {
+                Console.WriteLine("            response did not contain a 0x77 report marker");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"            FAILED: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+}
+
+static IReadOnlyList<ReportProbeVariant> CreateReportProbeVariants(byte command, int outputReportLength)
+{
+    var reportedLength = Math.Max(outputReportLength, 3);
+    var idLength = Math.Max(outputReportLength + (outputReportLength <= 64 ? 1 : 0), 4);
+    var raw64Length = Math.Max(64, 3);
+
+    return
+    [
+        new ReportProbeVariant("raw reported length", CreateProbeReport(command, reportedLength, includeReportId: false)),
+        new ReportProbeVariant("report-id prefixed length", CreateProbeReport(command, idLength, includeReportId: true)),
+        new ReportProbeVariant("raw 64-byte fallback", CreateProbeReport(command, raw64Length, includeReportId: false))
+    ];
+}
+
+static byte[] CreateProbeReport(byte command, int length, bool includeReportId)
+{
+    var report = new byte[length];
+    var offset = includeReportId ? 1 : 0;
+    report[offset] = QuadCastCommandIds.ReportMarker;
+    report[offset + 1] = command;
+    return report;
+}
+
+static string FormatBytes(IReadOnlyList<byte> bytes, int maxLength)
+{
+    return string.Join(" ", bytes.Take(maxLength).Select(value => value.ToString("X2")))
+        + (bytes.Count > maxLength ? " ..." : string.Empty);
 }
 
 static string Format<T>(T? value, string suffix = "")
@@ -126,6 +269,8 @@ static string FormatPattern(QuadCastPolarPattern? pattern)
 }
 
 internal readonly record struct DetectedDevice(HidDeviceInfo Info, DeviceKind Kind);
+
+internal readonly record struct ReportProbeVariant(string Name, byte[] Report);
 
 internal enum DeviceKind
 {
