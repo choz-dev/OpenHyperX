@@ -159,15 +159,19 @@ public static class QuadCastProtocol
 
     private static byte[] CreateReport(byte command, byte? value, int reportLength)
     {
-        var minimumLength = value is null ? 3 : 4;
+        var usesLargeDeviceBuffer = reportLength >= 264;
+        var minimumLength = usesLargeDeviceBuffer
+            ? value is null ? 2 : 3
+            : value is null ? 3 : 4;
         var length = Math.Max(reportLength <= 0 ? 64 : reportLength, minimumLength);
         var report = new byte[length];
-        report[1] = QuadCastCommandIds.ReportMarker;
-        report[2] = command;
+        var offset = usesLargeDeviceBuffer ? 0 : 1;
+        report[offset] = QuadCastCommandIds.ReportMarker;
+        report[offset + 1] = command;
 
         if (value is { } payload)
         {
-            report[3] = payload;
+            report[offset + 2] = payload;
         }
 
         return report;

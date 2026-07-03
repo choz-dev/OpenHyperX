@@ -205,7 +205,7 @@ public sealed class QuadCastClient : IDisposable, IAsyncDisposable
     {
         EnsureReportCommandSupported();
 
-        var request = QuadCastProtocol.CreateReportRequest(command, _transport.OutputReportLength);
+        var request = QuadCastProtocol.CreateReportRequest(command, GetReportWriteLength());
         await _transport.WriteAsync(request, cancellationToken).ConfigureAwait(false);
 
         var stopwatch = Stopwatch.StartNew();
@@ -229,8 +229,13 @@ public sealed class QuadCastClient : IDisposable, IAsyncDisposable
 
     private Task SendValueCommandAsync(byte command, byte value, CancellationToken cancellationToken)
     {
-        var report = QuadCastProtocol.CreateValueReport(command, value, _transport.OutputReportLength);
+        var report = QuadCastProtocol.CreateValueReport(command, value, GetReportWriteLength());
         return _transport.WriteAsync(report, cancellationToken);
+    }
+
+    private int GetReportWriteLength()
+    {
+        return Model == QuadCastModel.QuadCast2S ? 264 : _transport.OutputReportLength;
     }
 
     private void EnsureReportCommandSupported()

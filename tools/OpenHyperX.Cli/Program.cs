@@ -203,6 +203,8 @@ static IReadOnlyList<ReportProbeVariant> CreateReportProbeVariants(byte command,
 
     return
     [
+        new ReportProbeVariant("md CreateBuffer 264-byte shape", CreateProbeReport(command, 264, includeReportId: false)),
+        new ReportProbeVariant("md CreateBuffer 264-byte with report id", CreateProbeReport(command, 264, includeReportId: true)),
         new ReportProbeVariant("report-id at reported length", CreateProbeReport(command, reportedLength, includeReportId: true)),
         new ReportProbeVariant("raw reported length", CreateProbeReport(command, reportedLength, includeReportId: false)),
         new ReportProbeVariant("oversized report-id length", CreateProbeReport(command, oversizedIdLength, includeReportId: true)),

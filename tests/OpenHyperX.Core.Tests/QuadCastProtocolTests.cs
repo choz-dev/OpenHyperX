@@ -38,6 +38,16 @@ public sealed class QuadCastProtocolTests
     }
 
     [Fact]
+    public void ReportRequestUsesMarkdownDeviceBufferShapeFor264ByteReports()
+    {
+        var report = QuadCastProtocol.CreateReportRequest(QuadCastCommandIds.GetMicrophoneMute, 264);
+
+        Assert.Equal(264, report.Length);
+        Assert.Equal(0x77, report[0]);
+        Assert.Equal(0x86, report[1]);
+    }
+
+    [Fact]
     public void ReportValueParserAcceptsLeadingReportId()
     {
         var report = QuadCastProtocol.CreateValueReport(QuadCastCommandIds.GetMicrophoneMute, 0x01, 64);
