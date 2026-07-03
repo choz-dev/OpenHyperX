@@ -16,21 +16,22 @@ public sealed class QuadCastProtocolTests
     }
 
     [Fact]
-    public void ReportRequestUsesQuadCastMarkerAndCommandByte()
+    public void ReportRequestUsesHidReportIdThenQuadCastMarkerAndCommandByte()
     {
         var report = QuadCastProtocol.CreateReportRequest(QuadCastCommandIds.GetPolarPattern, 64);
 
         Assert.Equal(64, report.Length);
-        Assert.Equal(0x77, report[0]);
-        Assert.Equal(0x85, report[1]);
+        Assert.Equal(0x00, report[0]);
+        Assert.Equal(0x77, report[1]);
+        Assert.Equal(0x85, report[2]);
     }
 
     [Fact]
-    public void ReportRequestUsesLeadingReportIdFor65ByteHidReports()
+    public void ReportRequestKeepsReportedHidLengthWhenReportIdIsIncluded()
     {
-        var report = QuadCastProtocol.CreateReportRequest(QuadCastCommandIds.GetPolarPattern, 65);
+        var report = QuadCastProtocol.CreateReportRequest(QuadCastCommandIds.GetPolarPattern, 64);
 
-        Assert.Equal(65, report.Length);
+        Assert.Equal(64, report.Length);
         Assert.Equal(0x00, report[0]);
         Assert.Equal(0x77, report[1]);
         Assert.Equal(0x85, report[2]);
@@ -39,7 +40,7 @@ public sealed class QuadCastProtocolTests
     [Fact]
     public void ReportValueParserAcceptsLeadingReportId()
     {
-        var report = QuadCastProtocol.CreateValueReport(QuadCastCommandIds.GetMicrophoneMute, 0x01, 65);
+        var report = QuadCastProtocol.CreateValueReport(QuadCastCommandIds.GetMicrophoneMute, 0x01, 64);
 
         Assert.True(QuadCastProtocol.TryGetReportValue(report, QuadCastCommandIds.GetMicrophoneMute, out var value));
         Assert.Equal(0x01, value);
@@ -114,7 +115,7 @@ public sealed class QuadCastProtocolTests
         await using var client = new QuadCastClient(
             new FakeQuadCastTransport(
                 QuadCastDeviceIds.ProductIdQuadCast2SCommand,
-                outputReportLength: 65,
+                outputReportLength: 64,
                 new Dictionary<byte, byte>
                 {
                     [QuadCastCommandIds.GetPolarPattern] = 0x01,
@@ -189,15 +190,15 @@ public sealed class QuadCastProtocolTests
                 "fake",
                 QuadCastDeviceIds.HyperXVendorId,
                 productId,
-                "Fake QuadCast",
-                65,
+            "Fake QuadCast",
+                64,
                 outputReportLength,
                 264);
         }
 
         public HidDeviceInfo DeviceInfo { get; }
 
-        public int InputReportLength => 65;
+        public int InputReportLength => 64;
 
         public int OutputReportLength => _outputReportLength;
 

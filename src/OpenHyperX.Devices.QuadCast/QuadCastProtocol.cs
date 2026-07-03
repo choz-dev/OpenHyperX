@@ -159,27 +159,18 @@ public static class QuadCastProtocol
 
     private static byte[] CreateReport(byte command, byte? value, int reportLength)
     {
-        var includeReportId = ShouldIncludeReportId(reportLength);
-        var minimumLength = includeReportId
-            ? (value is null ? 3 : 4)
-            : (value is null ? 2 : 3);
+        var minimumLength = value is null ? 3 : 4;
         var length = Math.Max(reportLength <= 0 ? 64 : reportLength, minimumLength);
         var report = new byte[length];
-        var offset = includeReportId ? 1 : 0;
-        report[offset] = QuadCastCommandIds.ReportMarker;
-        report[offset + 1] = command;
+        report[1] = QuadCastCommandIds.ReportMarker;
+        report[2] = command;
 
         if (value is { } payload)
         {
-            report[offset + 2] = payload;
+            report[3] = payload;
         }
 
         return report;
-    }
-
-    private static bool ShouldIncludeReportId(int reportLength)
-    {
-        return reportLength > 64;
     }
 
     private static int FindReportMarker(ReadOnlySpan<byte> report)

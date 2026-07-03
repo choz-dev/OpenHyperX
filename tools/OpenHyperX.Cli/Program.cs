@@ -197,14 +197,15 @@ static async Task ProbeQuadCastReportStatusAsync(HidSharpDeviceEnumerator enumer
 
 static IReadOnlyList<ReportProbeVariant> CreateReportProbeVariants(byte command, int outputReportLength)
 {
-    var reportedLength = Math.Max(outputReportLength, 3);
-    var idLength = Math.Max(outputReportLength + (outputReportLength <= 64 ? 1 : 0), 4);
+    var reportedLength = Math.Max(outputReportLength, 4);
+    var oversizedIdLength = Math.Max(outputReportLength + 1, 4);
     var raw64Length = Math.Max(64, 3);
 
     return
     [
+        new ReportProbeVariant("report-id at reported length", CreateProbeReport(command, reportedLength, includeReportId: true)),
         new ReportProbeVariant("raw reported length", CreateProbeReport(command, reportedLength, includeReportId: false)),
-        new ReportProbeVariant("report-id prefixed length", CreateProbeReport(command, idLength, includeReportId: true)),
+        new ReportProbeVariant("oversized report-id length", CreateProbeReport(command, oversizedIdLength, includeReportId: true)),
         new ReportProbeVariant("raw 64-byte fallback", CreateProbeReport(command, raw64Length, includeReportId: false))
     ];
 }
