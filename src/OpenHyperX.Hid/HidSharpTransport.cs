@@ -38,8 +38,15 @@ public sealed class HidSharpTransport : IHyperXTransport
                 lock (_sync)
                 {
                     ThrowIfDisposed();
-                    _stream.Write(report, 0, report.Length);
-                    _stream.Flush();
+                    try
+                    {
+                        _stream.Write(report, 0, report.Length);
+                        _stream.Flush();
+                    }
+                    catch (IOException) when (OperatingSystem.IsWindows())
+                    {
+                        WindowsHidOutputReportWriter.Write(DeviceInfo.Path, report);
+                    }
                 }
             },
             cancellationToken);
