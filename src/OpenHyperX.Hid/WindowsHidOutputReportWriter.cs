@@ -28,7 +28,8 @@ internal static class WindowsHidOutputReportWriter
         }
 
         var normalizedReport = NormalizeReport(report, outputReportLength);
-        Exception? lastException = null;
+        Exception? fileStreamException = null;
+        var setOutputReportExceptions = new List<Exception>();
 
         try
         {
@@ -37,7 +38,7 @@ internal static class WindowsHidOutputReportWriter
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            lastException = ex;
+            fileStreamException = ex;
         }
 
         foreach (var desiredAccess in DesiredAccessFallbacks)
@@ -49,11 +50,25 @@ internal static class WindowsHidOutputReportWriter
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                lastException = ex;
+                setOutputReportExceptions.Add(ex);
             }
         }
 
-        throw new IOException("HID output-report fallback failed.", lastException);
+        throw new IOException(
+            BuildFailureMessage(fileStreamException, setOutputReportExceptions),
+            setOutputReportExceptions.LastOrDefault() ?? fileStreamException);
+    }
+
+    private static string BuildFailureMessage(Exception? fileStreamException, IReadOnlyList<Exception> setOutputReportExceptions)
+    {
+        var fileStreamMessage = fileStreamException is null
+            ? "not attempted"
+            : $"{fileStreamException.GetType().Name}: {fileStreamException.Message}";
+        var outputReportMessage = setOutputReportExceptions.Count == 0
+            ? "not attempted"
+            : string.Join("; ", setOutputReportExceptions.Select(ex => $"{ex.GetType().Name}: {ex.Message}"));
+
+        return $"HID output-report fallback failed. FileStream: {fileStreamMessage}. HidD_SetOutputReport: {outputReportMessage}.";
     }
 
     private static byte[] NormalizeReport(byte[] report, int outputReportLength)

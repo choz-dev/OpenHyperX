@@ -118,23 +118,28 @@ static async Task RunQuadCastProbeAsync(HidSharpDeviceEnumerator enumerator)
         Console.WriteLine($"    Selected by app: {selected}");
         Console.WriteLine($"    Path: {device.Path}");
 
-        if (!likelyCommand)
-        {
-            Console.WriteLine();
-            continue;
-        }
-
-        if (QuadCastDeviceIds.UsesFeatureReports(device))
+        if (QuadCastDeviceIds.UsesFeatureReports(device) && likelyCommand)
         {
             await ProbeQuadCastFeatureStatusAsync(enumerator, device);
         }
-        else
+        else if (CanProbeQuadCastOutputReports(device))
         {
             await ProbeQuadCastReportStatusAsync(enumerator, device);
+        }
+        else
+        {
+            Console.WriteLine("    Read-only report probe skipped: this interface has no output/input report path to test.");
         }
 
         Console.WriteLine();
     }
+}
+
+static bool CanProbeQuadCastOutputReports(HidDeviceInfo device)
+{
+    return QuadCastDeviceIds.TryGetModel(device, out _)
+        && device.OutputReportLength >= 3
+        && device.InputReportLength >= 3;
 }
 
 static async Task ProbeQuadCastFeatureStatusAsync(HidSharpDeviceEnumerator enumerator, HidDeviceInfo device)
@@ -156,6 +161,7 @@ static async Task ProbeQuadCastFeatureStatusAsync(HidSharpDeviceEnumerator enume
 static async Task ProbeQuadCastReportStatusAsync(HidSharpDeviceEnumerator enumerator, HidDeviceInfo device)
 {
     Console.WriteLine("    Report status probes using read-only GetMicrophoneMute (0x86):");
+    Console.WriteLine($"        Device output length is {device.OutputReportLength} byte(s); Windows fallback writes are normalized to that length.");
 
     var variants = CreateReportProbeVariants(QuadCastCommandIds.GetMicrophoneMute, device.OutputReportLength);
     foreach (var variant in variants)
